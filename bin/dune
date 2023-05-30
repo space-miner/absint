@@ -1,0 +1,6 @@
+(executable
+ (public_name absint)
+ (name main)
+ (libraries absint zarith)
+ (preprocess
+  (pps ppx_jane)))
