@@ -1,5 +1,5 @@
 %{
-  open AbSyn;;
+  open Syntax;;
   let x = ref 0;;
   let nextLbl x =
     let res = !x in 
@@ -7,51 +7,53 @@
     res
 %}
 
-%token SUB ADD SKIP UMINUS
-%token LT 
-%token LPAREN RPAREN EQ
-%token SEMICOLON IF ELSE WHILE LBRACKET RBRACKET EOF
+%token SUB ADD UMINUS 
+%token LESS
+%token LPAREN RPAREN EQUAL
+%token SEMICOLON WHILE LBRACKET RBRACKET EOF
+%token CHOICE
 %token ASSUME 
 %token <string> VAR 
-%token <int> CONST
+%token <Z.t> CONST
 
-%nonassoc ELSE
-%left MINUS PLUS 
+
+%left SEMICOLON
+%nonassoc CHOICE
+%left SUB ADD
+%nonassoc UMINUS
 
 %start prog
 %type <prog> prog
 %type <expr> expr
 %type <cond> cond
 %type <cmd> cmd
-
+ 
 %%
 
 prog:
   | c = cmd EOF                             { Prog c }
 
 cmd:
-  | c1 = cmd c2 = cmd                       { CSeq (nextLbl x, c1, nextLbl x, c2)}
-  | ASSUME c = cond SEMICOLON               { CAssume (nextLbl x, c) }
-  | IF LPAREN b = cond RPAREN LBRACKET c1 = cmd RBRACKET
-    ELSE LBRACKET c2 = cmd RBRACKET         { CSIfelse (nextLbl x, b, c1, c2) } 
+  | c1 = cmd SEMICOLON c2 = cmd             { Seq (nextLbl x, c1, nextLbl x, c2)}
+  | ASSUME c = cond                         { Assume (nextLbl x, c) }
+  | c1 = cmd CHOICE c2 = cmd                { Choice (nextLbl x, c1, c2) } 
   | WHILE LPAREN b = cond RPAREN
-    LBRACKET c = cmd RBRACKET               { CWhile (nextLbl x, b, c)}  
-  | SKIP SEMICOLON                          { CSkip }
-
+    LBRACKET c = cmd RBRACKET               { While (nextLbl x, b, c)}  
+  | v = VAR EQUAL e = expr                     { Assign (nextLbl x, v, e) }
 
 cmpop:
-  | LT  {Lt}
-  | EQ  {Eq}
+  | LESS  {Less}
+  | EQUAL  {Equal}
 
 cond:
-  | e1 = VAR cmp = cmpop e2 = expr         { CmpVarConst (cmp, e1, e1)}
+  | e1 = expr cmp = cmpop e2 = expr         { Cmp (cmp, e1, e2)}
 
 expr:
-  | n = CONST                              { EConst n }
-  | x = VAR                                { EVar x }
-  | e1 = expr SUB e2 = expr                { EBinop (Sub, e1, e2) }
-  | e1 = expr ADD e2 = expr                { EBinop (Add, e1, e2) }
-  | SUB e = expr                           { EBinop (Sub, (EConst Z.zero), e) } %prec UMINUS
+  | n = CONST                              { Const n }
+  | x = VAR                                { Var x }
+  | e1 = expr SUB e2 = expr                { Binop (Sub, e1, e2) }
+  | e1 = expr ADD e2 = expr                { Binop (Add, e1, e2) }
+  | SUB e = expr                           { Binop (Sub, (EConst Z.zero), e) } %prec UMINUS
   | LPAREN e = expr RPAREN                 { e }
 
 %%

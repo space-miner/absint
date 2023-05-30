@@ -10,26 +10,19 @@ let var = letter+
 
 rule token = parse
      [' ' '\t' '\n'] { token lexbuf }
-   | "if"      { IF }
-   | "else"    { ELSE }
    | "while"   { WHILE }
    | "assume"  { ASSUME } 
-   | "skip"    { SKIP }
    | ";"       { SEMICOLON }
    | "("       { LPAREN }
    | ")"       { RPAREN }
    | "{"       { LBRACKET }
    | "}"       { RBRACKET }
    | "-"       { SUB }
-   | "+"       { PLUS }
-   | "%"       { MOD }
-   | "true"    { TRUE }
-   | "false"   { FALSE }
-   | "<"       { LT }
-   | "if"      { IF }
+   | "+"       { ADD }
+   | "[]"      { CHOICE }   
+   | "<"       { LESS }
    | eof       { EOF }
-   | "else"    { ELSE }
-   | "="       { EQ }
+   | "="       { EQUAL }
    | var	   { VAR (Lexing.lexeme lexbuf)}
    | int       { CONST (Z.of_string (Lexing.lexeme lexbuf)) }
    

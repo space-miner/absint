@@ -1,24 +1,31 @@
 type label = int
-type const = Z.t
-type var = int
+type const = int
+type var = string
 
-type arith_op =
-  | Plus
-  | Minus
+type binop =
+  | Add
+  | Sub
+[@@deriving sexp]
 
-type cmp_op =
-  | LessThan
-  | Equal
+type cmpop =
+  | Lt
+  | Eq
+[@@deriving sexp]
 
 type expr =
-  | Const of const
-  | Var of var
-  | Binop of arith_op * expr * expr
+  | EConst of const
+  | EVar of var
+  | EBinop of binop * expr * expr
+[@@deriving sexp]
 
-type cond = Binop of cmp_op * var * const
+type cond = CmpVarConst of cmpop * expr * expr [@@deriving sexp]
 
 type cmd =
-  | Assume of label * cond
-  | While of label * cond * cmd
-  | Seq of label * cmd * cmd
-  | EOF
+  | CSeq of label * cmd * label * cmd
+  | CAssume of label * cond
+  | CWhile of label * cond * cmd
+  | CChoice of label * cmd * cmd
+  | CSkip
+[@@deriving sexp]
+
+type prog = Prog of cmd [@@deriving sexp]

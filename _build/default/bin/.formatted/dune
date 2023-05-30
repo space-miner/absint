@@ -1,6 +1,12 @@
 (executable
  (public_name absint)
  (name main)
+ (modules lexer parser main syntax)
  (libraries absint zarith)
  (preprocess
   (pps ppx_jane)))
+
+(ocamllex lexer)
+
+(menhir
+ (modules parser))

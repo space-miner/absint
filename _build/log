@@ -1,9 +1,9 @@
-# dune exec ./main.exe
+# dune exec ../bin/main.exe
 # OCAMLPARAM: unset
 # Shared cache: disabled
-# Workspace root: /home/artjomplaunov/repos/AbsIntExtract/absint
+# Workspace root: /home/artjomplaunov/repos/absint
 # Auto-detected concurrency: 8
-$ /usr/bin/ocamlc.opt -config > /tmp/dune_9b8d75_output
+$ /usr/bin/ocamlc.opt -config > /tmp/dune_3e271f_output
 # Dune context:
 #  { name = "default"
 #  ; kind = "default"
@@ -24,15 +24,14 @@ $ /usr/bin/ocamlc.opt -config > /tmp/dune_9b8d75_output
 #      map
 #        { "DUNE_OCAML_HARDCODED" : "/home/artjomplaunov/.opam/4.13.1/lib"
 #        ; "DUNE_OCAML_STDLIB" : "/usr/lib/ocaml"
-#        ; "DUNE_SOURCEROOT" : "/home/artjomplaunov/repos/AbsIntExtract/absint"
-#        ; "INSIDE_DUNE" :
-#            "/home/artjomplaunov/repos/AbsIntExtract/absint/_build/default"
+#        ; "DUNE_SOURCEROOT" : "/home/artjomplaunov/repos/absint"
+#        ; "INSIDE_DUNE" : "/home/artjomplaunov/repos/absint/_build/default"
 #        ; "OCAMLFIND_IGNORE_DUPS_IN" :
-#            "/home/artjomplaunov/repos/AbsIntExtract/absint/_build/install/default/lib"
+#            "/home/artjomplaunov/repos/absint/_build/install/default/lib"
 #        ; "OCAMLPATH" :
-#            "/home/artjomplaunov/repos/AbsIntExtract/absint/_build/install/default/lib"
+#            "/home/artjomplaunov/repos/absint/_build/install/default/lib"
 #        ; "OCAMLTOP_INCLUDE_PATH" :
-#            "/home/artjomplaunov/repos/AbsIntExtract/absint/_build/install/default/lib/toplevel"
+#            "/home/artjomplaunov/repos/absint/_build/install/default/lib/toplevel"
 #        ; "OCAML_COLOR" : "always"
 #        ; "OPAMCOLOR" : "always"
 #        }
