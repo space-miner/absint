@@ -1,0 +1,5 @@
+assume n = 100;
+i = n;
+while(i < 0){
+  i = (i-1);
+}
