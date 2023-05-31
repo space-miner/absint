@@ -1,8 +1,8 @@
 (executable
  (public_name absint)
  (name main)
- (modules lexer parser main syntax)
- (libraries absint zarith)
+ (modules lexer parser main syntax astprint)
+ (libraries absint zarith base stdio)
  (preprocess
   (pps ppx_jane)))
 
