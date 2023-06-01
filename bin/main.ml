@@ -1,6 +1,6 @@
 open Stdio
 open Astprint
-open Label
+open Ai
 
 let () =
   let lexbuf = Lexing.from_channel stdin in

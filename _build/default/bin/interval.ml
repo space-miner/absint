@@ -22,6 +22,23 @@ module BigInt = struct
     | PosInf, _ | _, NegInf -> PosInf
     | Int z1, Int z2 -> Int (Z.sub z1 z2)
   ;;
+
+  let min t1 t2 : t =
+    match t1, t2 with
+    | NegInf, _ -> NegInf
+    | _, NegInf -> NegInf
+    | PosInf, PosInf -> PosInf
+    | Int x, PosInf -> Int x
+    | PosInf, Int x -> Int x
+    | Int x, Int y -> Int (Z.min x y)
+  ;;
+
+  let max t1 t2 : t =
+    match t1, t2 with
+    | PosInf, _ | _, PosInf -> PosInf
+    | NegInf, x | x, NegInf -> x
+    | Int x, Int y -> Int (Z.max x y)
+  ;;
 end
 
 type interval = (BigInt.t * BigInt.t) option
