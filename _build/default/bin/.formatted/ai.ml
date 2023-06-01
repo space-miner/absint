@@ -11,32 +11,8 @@ let rec absintExpr e mem =
      | _ -> None)
   | Binop (binop, e1, e2) -> intervalBinop binop (absintExpr e1 mem) (absintExpr e2 mem)
 ;;
-(*
-let absintCond to_negate (Cmp (cmpop, e1, e2)) mem =*)
 
-
-let rec absintStep label command nextLabel mem =
-  match command with 
-  | Seq (_, c1, c2) ->
-      absintStep (firstLabel c1) c1 (firstLabel c2) mem 
-  | Assign (_, x, e) ->
-      let interval = absintExpr e mem in 
-      match interval with 
-      | None -> failwith "expression undefined in absintStep"
-      | Some i -> 
-          let mem' = StringMap.remove x mem in 
-          let mem'' = StringMap.add x (Some i) mem' in 
-      [
-        (nextLabel, mem'')
-      ]
-  | _ -> []
-  
-  (*
-  | While (_, cond, c) ->
-      [
-        (firstLabel c, absintCond cond mem),
-        (nextLabel, absintCond (cond mem)
-      ]*)
+let rec absintStep label command nextLabel mem = []
 
 let rec absintIterLoop stack global constProg lExit =
   if Stack.is_empty stack
