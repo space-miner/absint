@@ -1,1 +1,1 @@
-bin/interval.pp.ml: Int Map Ppx_module_timer_runtime String Syntax Z
+bin/interval.pp.ml: Base BigInt Bigint Ppx_module_timer_runtime Syntax
