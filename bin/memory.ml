@@ -6,13 +6,13 @@ type variable = string
 module Memory = struct
   type t = (variable, Interval.t) Hashtbl.t
 
-  let join t t' =
-    Hashtbl.fold t' ~init:t ~f:(fun variable interval acc ->
+  let join (t:((variable, Interval.t) Hashtbl.t)) (t':((variable, Interval.t) Hashtbl.t)) =
+    Hashtbl.fold ~init:t ~f:(fun variable interval acc ->
       match Hashtbl.find variable init with
       | None -> acc
       | Some interval' ->
         let interval'' = Interval.join interval interval' in
         let _ = Hashtbl.set acc ~key:variable ~data:interval'' in
-        acc)
+        acc) t'
   ;;
 end

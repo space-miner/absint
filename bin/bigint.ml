@@ -6,7 +6,7 @@ module BigInt = struct
 
   let ( + ) t1 t2 =
     match t1, t2 with
-    | NegInf, PosInf | PosInf, NegInf -> failwith "(IDK) adding infinities"
+    | NegInf, PosInf | PosInf, NegInf -> failwith "(IDK) adding opposite sign infinities"
     | NegInf, _ | _, NegInf -> NegInf
     | PosInf, _ | _, PosInf -> PosInf
     | Int z1, Int z2 -> Int (Z.add z1 z2)
@@ -14,7 +14,7 @@ module BigInt = struct
 
   let ( - ) t1 t2 =
     match t1, t2 with
-    | NegInf, NegInf | PosInf, PosInf -> failwith "(IDK) subtracting infinities"
+    | NegInf, NegInf | PosInf, PosInf -> failwith "(IDK) subtracting same sign infinities"
     | NegInf, _ | _, PosInf -> NegInf
     | PosInf, _ | _, NegInf -> PosInf
     | Int z1, Int z2 -> Int (Z.sub z1 z2)
