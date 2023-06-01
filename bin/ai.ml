@@ -12,6 +12,9 @@ let rec absintExpr e mem =
   | Binop (binop, e1, e2) -> intervalBinop binop (absintExpr e1 mem) (absintExpr e2 mem)
 ;;
 
+let rec absintStep command nextLabel memOpt =
+  match command 
+
 let rec absintIterLoop stack global constProg lExit =  
 if Stack.is_empty stack
 then 
@@ -24,12 +27,12 @@ else
         match findNextLabel constProg label lExit with 
         | None -> failwith "findNextLabel err in absintIterLoop"
         | Some nextLabel -> 
-          let memOpt = 
-            if IntMap.mem nextLabel global 
+          let mem = 
+            if IntMap.mem label global 
             then 
               IntMap.find label global
             else
-              memOpt = None 
+              StringMap.empty 
           in 
             let _ = absintStep nextCommand memOpt 
             in global
