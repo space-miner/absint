@@ -77,11 +77,11 @@ let rec printCmd cmd depth =
     let _ = printCmd c2 (depth + 2) in
     let _ = indent depth "" in
     print_endline ")"
-  | Assign (_, v, e) ->
+  | Assign (l, v, e) ->
     let _ = indent depth "" in
-    let _ = print_endline "(Assign:" in
+    let _ = print_endline ("(ASSIGN l" ^ string_of_int l) in
     let _ = indent (depth + 2) "" in
-    let _ = print_endline ("VAR" ^ v) in
+    let _ = print_endline ("VAR " ^ v) in
     let _ = printExpr e (depth + 2) in
     let _ = indent depth "" in
     print_endline ")"
@@ -89,8 +89,8 @@ let rec printCmd cmd depth =
 
 let printProg prog depth =
   match prog with
-  | Prog (c, l) -> 
-    let _ = printCmd c depth in 
+  | Prog (c, l) ->
+    let _ = printCmd c depth in
     let _ = indent depth "" in
-    print_endline ("l" ^ string_of_int l) 
+    print_endline ("l" ^ string_of_int l)
 ;;

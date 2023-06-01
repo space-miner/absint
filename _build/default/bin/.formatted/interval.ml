@@ -29,7 +29,7 @@ type interval = (BigInt.t * BigInt.t) option
 module StringMap = Map.Make (String)
 module IntMap = Map.Make (Int)
 
-type mem = interval StringMap.t
+type mem = interval StringMap.t option
 type global = mem IntMap.t
 
 (*i1 \subset i2*)

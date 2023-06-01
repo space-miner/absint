@@ -9,6 +9,9 @@ module Astprint = Dune__exe__Astprint
 (** @canonical Dune__exe.Interval *)
 module Interval = Dune__exe__Interval
 
+(** @canonical Dune__exe.Label *)
+module Label = Dune__exe__Label
+
 (** @canonical Dune__exe.Lexer *)
 module Lexer = Dune__exe__Lexer
 
