@@ -5,10 +5,12 @@ type var = string
 type binop =
   | Add
   | Sub
+[@@deriving sexp]
 
 type cmpop =
   | Less
   | Equal
+[@@deriving sexp]
 
 type expr =
   | Const of const

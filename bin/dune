@@ -1,10 +1,20 @@
 (executable
  (public_name absint)
  (name main)
- (modules lexer parser main syntax astprint interval ai label)
- (libraries absint zarith base stdio)
+ (modules
+  absint
+  astprint
+  bigint
+  interval
+  label
+  lexer
+  main
+  memory
+  parser
+  syntax)
+ (libraries base stdio zarith)
  (preprocess
-  (pps ppx_jane)))
+  (pps ppx_jane ppx_sexp_conv)))
 
 (ocamllex lexer)
 
