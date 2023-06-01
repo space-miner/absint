@@ -31,10 +31,10 @@
 %%
 
 prog:
-  | c = cmd EOF                             { Prog c }
+  | c = cmd EOF                             { Prog (c, nextLbl x) }
 
 cmd:
-  | c1 = cmd SEMICOLON c2 = cmd             { Seq (nextLbl x, c1, nextLbl x, c2)}
+  | c1 = cmd SEMICOLON c2 = cmd             { Seq (nextLbl x, c1, c2)}
   | ASSUME c = cond                         { Assume (nextLbl x, c) }
   | c1 = cmd CHOICE c2 = cmd                { Choice (nextLbl x, c1, c2) } 
   | WHILE LPAREN b = cond RPAREN

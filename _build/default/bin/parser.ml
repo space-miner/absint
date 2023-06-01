@@ -148,7 +148,7 @@ let _menhir_action_01 =
   fun c1 c2 ->
     (
 # 37 "bin/parser.mly"
-                                            ( Seq (nextLbl x, c1, nextLbl x, c2))
+                                            ( Seq (nextLbl x, c1, c2))
 # 153 "bin/parser.ml"
      : (Syntax.cmd))
 
@@ -260,7 +260,7 @@ let _menhir_action_15 =
   fun c ->
     (
 # 34 "bin/parser.mly"
-                                            ( Prog c )
+                                            ( Prog (c, nextLbl x) )
 # 265 "bin/parser.ml"
      : (Syntax.prog))
 

@@ -5,9 +5,13 @@ open Ai
 let () =
   let lexbuf = Lexing.from_channel stdin in
   try
-    let p = Parser.prog Lexer.token lexbuf in
+    let (Prog (c, l)) = Parser.prog Lexer.token lexbuf in
     let _ = print_endline "" in
-    printProg p 0
+    let _ = printProg (Prog (c, l)) 0 in 
+    let c = findCmd c 1 in
+    match c with 
+    | None -> failwith "err"
+    | Some c -> printCmd c 0
   with
   | Lexer.Error msg -> Printf.fprintf stderr "%s%!" msg
   | Parser.Error ->

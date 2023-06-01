@@ -50,12 +50,10 @@ let printCond (Cmp (b, e1, e2)) depth =
 
 let rec printCmd cmd depth =
   match cmd with
-  | Seq (l1, c1, l2, c2) ->
+  | Seq (l1, c1, c2) ->
     let _ = indent depth "" in
     let _ = print_endline ("(SEQ l" ^ string_of_int l1) in
     let _ = printCmd c1 (depth + 2) in
-    let _ = indent (depth + 2) "" in
-    let _ = print_endline ("l" ^ string_of_int l2) in
     let _ = printCmd c2 (depth + 2) in
     let _ = indent depth "" in
     print_endline ")"
@@ -91,5 +89,8 @@ let rec printCmd cmd depth =
 
 let printProg prog depth =
   match prog with
-  | Prog c -> printCmd c depth
+  | Prog (c, l) -> 
+    let _ = printCmd c depth in 
+    let _ = indent depth "" in
+    print_endline ("l" ^ string_of_int l) 
 ;;

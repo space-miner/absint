@@ -18,10 +18,10 @@ type expr =
 type cond = Cmp of cmpop * expr * expr
 
 type cmd =
-  | Seq of label * cmd * label * cmd
+  | Seq of label * cmd * cmd
   | Assume of label * cond
   | While of label * cond * cmd
   | Choice of label * cmd * cmd
   | Assign of label * var * expr
 
-type prog = Prog of cmd
+type prog = Prog of cmd * label

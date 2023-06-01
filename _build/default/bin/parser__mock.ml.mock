@@ -55,7 +55,7 @@ and (xv_prog, xv_expr, xv_cond, xv_cmpop, xv_cmd) =
   )) (_startpos_c_ : Lexing.position) (_endpos_c_ : Lexing.position) (_startofs_c_ : int) (_endofs_c_ : int) (_loc_c_ : Lexing.position * Lexing.position) ->
     ((
 # 34 "bin/parser.mly"
-                                            ( Prog c )
+                                            ( Prog (c, nextLbl x) )
 # 60 "bin/parser__mock.ml.mock"
      : 'tv_prog) : (
 # 26 "bin/parser.mly"
@@ -407,7 +407,7 @@ and (xv_prog, xv_expr, xv_cond, xv_cmpop, xv_cmd) =
   )) (_startpos_c1_ : Lexing.position) (_endpos_c1_ : Lexing.position) (_startofs_c1_ : int) (_endofs_c1_ : int) (_loc_c1_ : Lexing.position * Lexing.position) ->
     ((
 # 37 "bin/parser.mly"
-                                            ( Seq (nextLbl x, c1, nextLbl x, c2))
+                                            ( Seq (nextLbl x, c1, c2))
 # 413 "bin/parser__mock.ml.mock"
      : 'tv_cmd) : (
 # 29 "bin/parser.mly"
