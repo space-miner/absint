@@ -20,5 +20,9 @@
         "**/*_adt.pvs": false,
         "**/*.log": true,
         "**/.vscode": true
+    },
+    "ocaml.sandbox": {
+        "kind": "opam",
+        "switch": "5.0.0"
     }
 }

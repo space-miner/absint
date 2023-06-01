@@ -1,7 +1,17 @@
 open Syntax
 open Bigint
+open Memory
+open Interval
 
-(*
+module Absint : sig 
+
+  val absintExpr : expr -> Memory.t -> Interval.t
+
+end = struct
+
+
+
+
 let rec absintExpr e (mem : (BigInt.t * BigInt.t) option StringMap.t option) =
   match e with
   | Const c -> Some (BigInt.Int c, BigInt.Int c)
@@ -83,4 +93,6 @@ let absintIter (Prog (cmd, l)) (initMem : mem) =
   let glbl' = IntMap.add initLabel initMem glbl in
   absintIterLoop worklist glbl' cmd l
 ;;
-*)*)
+*)
+
+end

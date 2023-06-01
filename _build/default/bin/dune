@@ -1,0 +1,22 @@
+(executable
+ (public_name absint)
+ (name main)
+ (modules
+  absint
+  astprint
+  bigint
+  interval
+  label
+  lexer
+  main
+  memory
+  parser
+  syntax)
+ (libraries base stdio zarith)
+ (preprocess
+  (pps ppx_jane ppx_sexp_conv)))
+
+(ocamllex lexer)
+
+(menhir
+ (modules parser))

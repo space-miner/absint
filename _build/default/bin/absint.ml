@@ -1,5 +1,16 @@
 open Syntax
 open Bigint
+open Memory
+open Interval
+
+module Absint : sig 
+
+  val absintExpr : expr -> Memory.t -> Interval.t
+
+end = struct
+
+let rec absintExpr = failwith "todo"
+
 
 (*
 let rec absintExpr e (mem : (BigInt.t * BigInt.t) option StringMap.t option) =
@@ -10,7 +21,7 @@ let rec absintExpr e (mem : (BigInt.t * BigInt.t) option StringMap.t option) =
      | Some interval -> Some interval
      | _ -> None)
   | Binop (binop, e1, e2) -> intervalBinop binop (absintExpr e1 mem) (absintExpr e2 mem)
-;;
+;;*)
 (*
 (*
 let absintCond to_negate (Cmp (cmpop, e1, e2)) mem =*)
@@ -83,4 +94,6 @@ let absintIter (Prog (cmd, l)) (initMem : mem) =
   let glbl' = IntMap.add initLabel initMem glbl in
   absintIterLoop worklist glbl' cmd l
 ;;
-*)*)
+*)
+
+end
