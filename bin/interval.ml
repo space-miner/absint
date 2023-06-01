@@ -16,7 +16,14 @@ module Interval = struct
     | None, _ | _, None -> failwith "err"
     | Some (lo1, hi1), Some (lo2, hi2) -> Some (BigInt.( + ) lo1 lo2, BigInt.( + ) hi1 hi2)
   ;;
-
+ 
+  let join t t' =
+    match t, t' with
+    | None, None -> None
+    | None, t | t, None -> t
+    | Some (lo1, hi1), Some (lo2, hi2) -> Some (BigInt.min lo1 lo2, BigInt.max hi1 hi2)
+  ;;
+  
   let binop op t t' =
     match op with
     | Add -> BigInt.( + ) t t'
