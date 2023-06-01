@@ -6,7 +6,7 @@ let () =
   try
     let p = Parser.prog Lexer.token lexbuf in
     let _ = print_endline "" in
-    printProg p 0
+    print_prog p 0
   with
   | Lexer.Error msg -> Printf.fprintf stderr "%s%!" msg
   | Parser.Error ->
