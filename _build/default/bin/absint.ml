@@ -3,25 +3,17 @@ open Bigint
 open Memory
 open Interval
 
-module Absint : sig 
-
+module Absint : sig
   val absintExpr : expr -> Memory.t -> Interval.t
-
 end = struct
+  let rec absIntExpr e mem =
+    match e with
+    | Const c -> Some (BigInt.Int c, BigInt.Int c)
+    | Var x -> None
+    | _ -> None
+  ;;
+end
 
-let rec absintExpr = failwith "todo"
-
-
-(*
-let rec absintExpr e (mem : (BigInt.t * BigInt.t) option StringMap.t option) =
-  match e with
-  | Const c -> Some (BigInt.Int c, BigInt.Int c)
-  | Var x ->
-    (match StringMap.find x (Option.get mem) with
-     | Some interval -> Some interval
-     | _ -> None)
-  | Binop (binop, e1, e2) -> intervalBinop binop (absintExpr e1 mem) (absintExpr e2 mem)
-;;*)
 (*
 (*
 let absintCond to_negate (Cmp (cmpop, e1, e2)) mem =*)
@@ -95,5 +87,3 @@ let absintIter (Prog (cmd, l)) (initMem : mem) =
   absintIterLoop worklist glbl' cmd l
 ;;
 *)
-
-end

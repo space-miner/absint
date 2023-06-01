@@ -2,15 +2,13 @@ open Bigint
 open Syntax
 
 module Interval : sig
-
   type t
+
   val ( - ) : t -> t -> t
   val ( + ) : t -> t -> t
   val join : t -> t -> t
   val binop : binop -> BigInt.t -> BigInt.t -> BigInt.t
-
 end = struct
-  
   type t = (BigInt.t * BigInt.t) option
 
   let join t t' =

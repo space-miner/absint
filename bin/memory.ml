@@ -3,12 +3,10 @@ open Interval
 type variable = string
 
 module Memory : sig
-
   type t
+
   val join : t -> t -> t
-
 end = struct
-
   type t = (variable, Interval.t) Base.Hashtbl.t
 
   let join (t1 : t) (t2 : t) =
