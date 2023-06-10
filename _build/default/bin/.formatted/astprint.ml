@@ -24,13 +24,6 @@ let rec print_expr exp depth =
     print_endline ")"
 ;;
 
-(*
-let printBinop b depth =
-  let _ = indent depth "" in
-  match b with 
-    | Add -> print_endline "ADD"
-    | Sub -> print_endline "SUB"
-*)
 let print_cmpop b depth =
   let _ = indent depth "" in
   match b with

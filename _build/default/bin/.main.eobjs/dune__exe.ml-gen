@@ -6,14 +6,11 @@ module Absint = Dune__exe__Absint
 (** @canonical Dune__exe.Astprint *)
 module Astprint = Dune__exe__Astprint
 
-(** @canonical Dune__exe.Bigint *)
-module Bigint = Dune__exe__Bigint
+(** @canonical Dune__exe.Binterval *)
+module Binterval = Dune__exe__Binterval
 
-(** @canonical Dune__exe.Interval *)
-module Interval = Dune__exe__Interval
-
-(** @canonical Dune__exe.Label *)
-module Label = Dune__exe__Label
+(** @canonical Dune__exe.Extinct *)
+module Extinct = Dune__exe__Extinct
 
 (** @canonical Dune__exe.Lexer *)
 module Lexer = Dune__exe__Lexer
@@ -21,11 +18,11 @@ module Lexer = Dune__exe__Lexer
 (** @canonical Dune__exe.Main *)
 module Main = Dune__exe__Main
 
-(** @canonical Dune__exe.Memory *)
-module Memory = Dune__exe__Memory
-
 (** @canonical Dune__exe.Parser *)
 module Parser = Dune__exe__Parser
 
 (** @canonical Dune__exe.Syntax *)
 module Syntax = Dune__exe__Syntax
+
+(** @canonical Dune__exe.Util *)
+module Util = Dune__exe__Util

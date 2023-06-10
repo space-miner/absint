@@ -1,1 +1,1 @@
-bin/syntax.pp.ml: Ppx_module_timer_runtime Sexplib0 Z
+bin/syntax.pp.ml: Ppx_module_timer_runtime Z

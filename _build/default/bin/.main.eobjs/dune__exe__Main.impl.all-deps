@@ -1,4 +1,8 @@
+dune__exe__Absint
 dune__exe__Astprint
+dune__exe__Binterval
+dune__exe__Extinct
 dune__exe__Lexer
 dune__exe__Parser
 dune__exe__Syntax
+dune__exe__Util

@@ -1,89 +1,111 @@
+open Base
+open Binterval
+open Extinct
 open Syntax
-open Bigint
-open Memory
-open Interval
+open Util
 
-module Absint : sig
-  val absintExpr : expr -> Memory.t -> Interval.t
+module Memory : sig
+  type t = (var, Binterval.t) Hashtbl.t
+
+  val join : t -> t -> t
 end = struct
-  let rec absIntExpr e mem =
-    match e with
-    | Const c -> Some (BigInt.Int c, BigInt.Int c)
-    | Var x -> None
-    | _ -> None
+  type t = (var, Binterval.t) Hashtbl.t
+
+  let join (t1 : t) (t2 : t) =
+    Hashtbl.fold
+      ~init:t1
+      ~f:(fun ~key:variable ~data:interval acc ->
+        match Hashtbl.find t1 variable with
+        | None -> acc
+        | Some interval' ->
+          let interval'' = Binterval.join interval interval' in
+          let _ = Hashtbl.set acc ~key:variable ~data:interval'' in
+          acc)
+      t2
   ;;
 end
 
-(*
-(*
-let absintCond to_negate (Cmp (cmpop, e1, e2)) mem =*)
+module Absint : sig
+  val absintExpr : expr -> Memory.t -> Binterval.t
+  val absintCmd : cmd -> (label, Memory.t) Hashtbl.t -> label -> label list
+  val absintIter : prog -> Memory.t -> ((label, (var, Binterval.t) Hashtbl.t) Hashtbl.t)
+  val absintIterLoop : 
+    (label Base.Stack.t) -> 
+    ((label, Memory.t) Hashtbl.t) ->
+    cmd -> label -> 
+    ((label, Memory.t) Hashtbl.t)
+     
+end = struct
 
-let rec absintStep
-  (_label:label)
-  (command: cmd)
-  (nextLabel:label)
-  (mem : (BigInt.t * BigInt.t) option StringMap.t option)
-  =
-  match command with
-  | Seq (_, c1, c2) -> absintStep (firstLabel c1) c1 (firstLabel c2) mem
-  | Assign (_, x, e) ->
-    let interval = absintExpr e mem in
-    (match interval with
-     | None -> failwith "expression undefined in absintStep"
-     | Some i ->
-       let mem' = StringMap.remove x (Option.get mem) in
-       let mem'' = StringMap.add x (Some i) mem' in
-       [ nextLabel, Some mem'' ])
-  | _ -> []
-;;
+  let rec absintExpr exp (mem: Memory.t) =
+    match exp with 
+    | Const c -> Some (Extinct.Int c, Extinct.Int c)
+    | Var x -> (match Hashtbl.find mem x with 
+      | Some x -> x
+      | None -> failwith "todo, none or [-inf, inf]"
+      )
+    | Binop (op, exp1, exp2) -> (match op with
+      | Add -> Binterval.( + ) (absintExpr exp1 mem) (absintExpr exp2 mem)
+      | Sub -> Binterval.( - ) (absintExpr exp1 mem) (absintExpr exp2 mem))
+  ;;
 
-(*
-  | While (_, cond, c) ->
-      [
-        (firstLabel c, absintCond cond mem),
-        (nextLabel, absintCond (cond mem)
-      ]*)
+  (* same as ai_step in the book *)
+  let rec absintCmd currCmd glblState nextLabel = 
+    match currCmd with
+    | Seq (_, cmd1, cmd2) -> 
+        absintCmd cmd1 glblState (Util.findLabel cmd2)
+    | Assign (lbl, var, exp) -> 
+      let curMem = 
+        match Hashtbl.find glblState lbl with 
+        | None -> Hashtbl.create (module String)
+        | Some mem -> Hashtbl.copy mem 
+      in         
+      let oldBint = 
+        match Hashtbl.find curMem var with 
+        | None -> None
+        | Some b -> b 
+      in 
+      let newBint = absintExpr exp curMem in 
+      let joinBint = Binterval.join oldBint newBint in 
+      let _ = Hashtbl.set curMem ~key:var ~data:joinBint in 
+      let nextMem = match Hashtbl.find glblState nextLabel with
+        | None -> Hashtbl.create (module String)
+        | Some mem -> mem
+      in
+      if Poly.(<>) curMem nextMem then (
+        let joinMem = Memory.join curMem nextMem in
+        let _ = Hashtbl.set glblState ~key:nextLabel ~data:joinMem in
+        [nextLabel]
+      ) else []
+      | _ -> failwith "todo"
 
-let join (i1 : (BigInt.t * BigInt.t) option) (i2 : (BigInt.t * BigInt.t) option) =
-  match i1, i2 with
-  | None, i -> i
-  | i, None -> i
-  | Some (lo1, hi1), Some (lo2, hi2) -> Some (BigInt.min lo1 lo2, BigInt.max hi1 hi2)
-;;
-
-let updateGlobal = failwith ""
-
-let rec absintIterLoop
-  (stack : label Base.Stack.t)
-  (global : mem IntMap.t)
+  let rec absintIterLoop
+  (stack : label Stack.t)
+  (global : (label, Memory.t) Hashtbl.t)
   (constProg : cmd)
   (lExit : label)
   =
-  if Base.Stack.is_empty stack
+  if Stack.is_empty stack
   then global
   else (
-    let label = Base.Stack.pop_exn stack in
-    match findCmd constProg label with
-    | None -> failwith "findCmd err in absintIterLoop"
+    let label = Stack.pop_exn stack in
+    match Util.findCmd constProg label with
+    | None -> 
+      absintIterLoop stack global constProg lExit
     | Some command ->
-      (match findNextLabel constProg label lExit with
-       | None -> failwith "findNextLabel err in absintIterLoop"
-       | Some nextLabel ->
-         let (mem : 'a StringMap.t option) =
-           if IntMap.mem label global
-           then IntMap.find label global
-           else Some StringMap.empty
-         in
-         let mems = absintStep label command nextLabel mem in
-         let global', stack' = List.fold_left updateGlobal (global, stack) mems in
-         absintIterLoop stack' global' constProg lExit))
-;;
+      (match Util.findNextLabel constProg label lExit with
+        | None -> failwith "findNextLabel err in absintIterLoop"
+        | Some nextLabel ->
+          let labels = absintCmd command global nextLabel  in
+          let _ = List.map labels ~f:(fun x -> Stack.push stack x) in
+          absintIterLoop stack global constProg lExit))
+    ;;
+  let absintIter (Prog (cmd, l)) initMem =
+    let initLabel = Util.findLabel cmd in
+    let worklist = Base.Stack.of_list [ initLabel ] in
+    let glbl = Hashtbl.create (module Int) in
+    let _ = Hashtbl.set glbl ~key:initLabel ~data:initMem in
+    absintIterLoop worklist glbl cmd l
+  ;;
 
-let absintIter (Prog (cmd, l)) (initMem : mem) =
-  let initLabel = firstLabel cmd in
-  let worklist = Base.Stack.of_list [ initLabel ] in
-  let glbl = IntMap.empty in
-  let glbl' = IntMap.add initLabel initMem glbl in
-  absintIterLoop worklist glbl' cmd l
-;;
-*)
+  end
