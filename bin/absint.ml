@@ -54,6 +54,26 @@ end = struct
     match currCmd with
     | Seq (_, cmd1, cmd2) -> 
         absintCmd cmd1 glblState (Util.findLabel cmd2)
+    | Choice (lbl, cmd1, cmd2) ->
+      let curMem =
+        match Hashtbl.find glblState lbl with
+        | None -> Hashtbl.create (module String)
+        | Some mem -> Hashtbl.copy mem
+      in
+      let label1 = Util.findLabel cmd1 in
+      let label2 = Util.findLabel cmd2 in
+      List.fold [ label1; label2 ] ~init:[] ~f:(fun acc label ->
+        let nextMem =
+          match Hashtbl.find glblState label with
+          | None -> Hashtbl.create (module String)
+          | Some mem -> mem
+        in
+        if Poly.( <> ) curMem nextMem
+        then (
+          let joinMem = Memory.join curMem nextMem in
+          let _ = Hashtbl.set glblState ~key:label ~data:joinMem in
+          label :: acc)
+        else acc)
     | Assign (lbl, var, exp) -> 
       let curMem = 
         match Hashtbl.find glblState lbl with 
