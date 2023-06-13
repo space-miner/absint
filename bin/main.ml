@@ -8,7 +8,7 @@ let () =
   try
     let p = Parser.prog Lexer.token lexbuf in
     let mem = Hashtbl.create (module String) in
-    let glbl = Absint.absintIter p mem in
+    let glbl = Absint.absint_iter p mem in
     let _ =
       Hashtbl.iteri glbl ~f:(fun ~key:lbl ~data:mem ->
         let _ = Stdio.printf "label%d: \n" lbl in

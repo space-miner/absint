@@ -41,34 +41,33 @@ end = struct
 end
 
 module Absint : sig
-  val absintExpr : expr -> Memory.t -> Interval.t
-  val absintCmd : cmd -> (label, Memory.t) Hashtbl.t -> label -> label list
-  val absintIter : prog -> Memory.t -> (label, (var, Interval.t) Hashtbl.t) Hashtbl.t
-
-  val absintIterLoop
+  val absint_expression : expr -> Memory.t -> Interval.t
+  val absint_command : cmd -> (label, Memory.t) Hashtbl.t -> label -> label list
+  val absint_iter : prog -> Memory.t -> (label, (var, Interval.t) Hashtbl.t) Hashtbl.t
+  val absint_iter_loop
     :  label Base.Stack.t
     -> (label, Memory.t) Hashtbl.t
     -> cmd
     -> label
     -> (label, Memory.t) Hashtbl.t
 end = struct
-  let rec absintExpr exp (mem : Memory.t) =
-    match exp with
+  let rec absint_expression expression (memory : Memory.t) =
+    match expression with
     | Const c -> Some (BigInt.Int c, BigInt.Int c)
     | Var x ->
-      (match Hashtbl.find mem x with
+      (match Hashtbl.find memory x with
        | Some x -> x
        | None -> failwith "todo, none or [-inf, inf]")
-    | Binop (op, exp1, exp2) ->
-      (match op with
-       | Add -> Interval.( + ) (absintExpr exp1 mem) (absintExpr exp2 mem)
-       | Sub -> Interval.( - ) (absintExpr exp1 mem) (absintExpr exp2 mem))
+    | Binop (operation, left_expression, right_expression) ->
+      (match operation with
+       | Add -> Interval.( + ) (absint_expression left_expression memory) (absint_expression right_expression memory)
+       | Sub -> Interval.( - ) (absint_expression right_expression memory) (absint_expression right_expression memory))
   ;;
 
-  let absintCond (Cmp (compare_operation, left_expression, right_expression)) (memory:Memory.t) : Interval.t =
+  let absint_condition (Cmp (compare_operation, left_expression, right_expression)) (memory:Memory.t) : Interval.t =
     match left_expression with
     | Var x -> 
-      let right_interval = absintExpr right_expression memory in
+      let right_interval = absint_expression right_expression memory in
       (match compare_operation with
       | Less -> 
         (* if right interval is [4,11] modified will be [-inf, 10] -- to generalize [a,b] -> [-inf, b-1]*)
@@ -92,9 +91,9 @@ end = struct
         joined_interval)
     | _ -> failwith "we only ac(opium)cept variables on left and expressions on right"
 
-  let rec absintCmd currCmd glblState nextLabel =
+  let rec absint_command currCmd glblState nextLabel =
     match currCmd with
-    | Seq (_, cmd1, cmd2) -> absintCmd cmd1 glblState (Util.findLabel cmd2)
+    | Seq (_, cmd1, cmd2) -> absint_command cmd1 glblState (Util.findLabel cmd2)
     | Choice (lbl, cmd1, cmd2) ->
       let curMem =
         match Hashtbl.find glblState lbl with
@@ -120,14 +119,14 @@ end = struct
         let v = 
           match cond with
           | Cmp (_, Var x, _) -> x
-          | _ -> failwith "No variable in Condition expression. public static void assume absintCmd failure."
+          | _ -> failwith "No variable in Condition expression. public static void assume absint_command failure."
         in
         let curMem = 
           match Hashtbl.find glblState lbl with
           | None -> Hashtbl.create (module String)
           | Some mem -> Hashtbl.copy mem
         in
-        let cond_eval = absintCond cond curMem in 
+        let cond_eval = absint_condition cond curMem in 
         let _ = Hashtbl.set curMem ~key:v ~data:cond_eval in
         let nextMem = Option.value (Hashtbl.find glblState nextLabel) ~default:(Hashtbl.create (module String)) in
         if Memory.( <> ) curMem nextMem
@@ -144,7 +143,7 @@ end = struct
         | Some mem -> Hashtbl.copy mem
       in
       let oldBint = Option.value (Hashtbl.find curMem var) ~default:None in
-      let newBint = absintExpr exp curMem in
+      let newBint = absint_expression exp curMem in
       let joinBint = Interval.join oldBint newBint in
       let _ = Hashtbl.set curMem ~key:var ~data:joinBint in
       let nextMem = Option.value (Hashtbl.find glblState nextLabel) ~default:(Hashtbl.create (module String)) in
@@ -157,7 +156,7 @@ end = struct
     | _ -> failwith "todo"
   ;;
 
-  let rec absintIterLoop
+  let rec absint_iter_loop
     (stack : label Stack.t)
     (global : (label, Memory.t) Hashtbl.t)
     (constProg : cmd)
@@ -168,21 +167,21 @@ end = struct
     else (
       let label = Stack.pop_exn stack in
       match Util.findCmd constProg label with
-      | None -> absintIterLoop stack global constProg lExit
+      | None -> absint_iter_loop stack global constProg lExit
       | Some command ->
         (match Util.findNextLabel constProg label lExit with
-         | None -> failwith "findNextLabel err in absintIterLoop"
+         | None -> failwith "findNextLabel err in absint_iterLoop"
          | Some nextLabel ->
-           let labels = absintCmd command global nextLabel in
+           let labels = absint_command command global nextLabel in
            let _ = List.map labels ~f:(fun x -> Stack.push stack x) in
-           absintIterLoop stack global constProg lExit))
+           absint_iter_loop stack global constProg lExit))
   ;;
 
-  let absintIter (Prog (cmd, l)) initMem =
+  let absint_iter (Prog (cmd, l)) initMem =
     let initLabel = Util.findLabel cmd in
     let worklist = Base.Stack.of_list [ initLabel ] in
     let glbl = Hashtbl.create (module Int) in
     let _ = Hashtbl.set glbl ~key:initLabel ~data:initMem in
-    absintIterLoop worklist glbl cmd l
+    absint_iter_loop worklist glbl cmd l
   ;;
 end
