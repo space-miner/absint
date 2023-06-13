@@ -7,18 +7,24 @@ module Binterval : sig
   val ( + ) : t -> t -> t
   val join : t -> t -> t
   val binop : Syntax.binop -> Extinct.t -> Extinct.t -> Extinct.t
-
-  val toString : t -> string 
-
+  val is_subset : t -> t -> bool
+  val toString : t -> string
 end = struct
   type t = (Extinct.t * Extinct.t) option
 
-  let toString t = 
-    match t with 
-    | None -> ""
-    | Some (e1, e2) -> 
-       "[" ^ (Extinct.toString e1) ^ ", " ^ (Extinct.toString e2) ^ "]"
+  let is_subset (t1 : t) (t2 : t) =
+    match t1, t2 with
+    | None, _ -> true
+    | _, None -> false
+    | Some (lo1, hi1), Some (lo2, hi2) ->
+      Extinct.( == ) (Extinct.min lo1 lo2) lo2 && Extinct.( == ) (Extinct.max hi1 hi2) hi2
+  ;;
 
+  let toString t =
+    match t with
+    | None -> ""
+    | Some (e1, e2) -> "[" ^ Extinct.toString e1 ^ ", " ^ Extinct.toString e2 ^ "]"
+  ;;
 
   let join t t' =
     match t, t' with

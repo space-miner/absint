@@ -6,6 +6,7 @@ module Extinct : sig
 
   val ( + ) : t -> t -> t
   val ( - ) : t -> t -> t
+  val ( == ) : t -> t -> bool
   val min : t -> t -> t
   val max : t -> t -> t
   val toString : t -> string
@@ -15,11 +16,19 @@ end = struct
     | NegInf
     | Int of Z.t
 
-  let toString x = 
-    match x with 
+  let toString x =
+    match x with
     | PosInf -> "PosInf"
     | NegInf -> "NegInf"
     | Int z -> Z.to_string z
+  ;;
+
+  let ( == ) t1 t2 =
+    match t1, t2 with
+    | NegInf, NegInf | PosInf, PosInf -> true
+    | NegInf, _ | PosInf, _ | _, NegInf | _, PosInf -> false
+    | Int x, Int y -> Z.equal x y
+  ;;
 
   let ( + ) t1 t2 =
     match t1, t2 with
