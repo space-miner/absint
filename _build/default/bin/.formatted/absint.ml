@@ -68,6 +68,30 @@ end = struct
        | Sub -> Binterval.( - ) (absintExpr exp1 mem) (absintExpr exp2 mem))
   ;;
 
+  let absintCond
+    (Cmp (compare_operation, left_expression, right_expression))
+    (memory : Memory.t)
+    : Binterval.t
+    =
+    match left_expression with
+    | Var x ->
+      let right_interval = absintExpr right_expression memory in
+      (match compare_operation with
+       | Less -> failwith "todo"
+       | Equal ->
+         (* 
+          we can overwrite x with the right_interval if the worklist processes items inorder -- i.e. 
+          it never processes something that comes before an assume after processing an assume.contents
+
+          right now we're just super over approximating 
+        *)
+         let left_interval = Option.value (Hashtbl.find memory x) ~default:None in
+         let joined_interval = Binterval.join left_interval right_interval in
+         Hashtbl.set ~key:x ~data:joined_interval memory;
+         joined_interval)
+    | _ -> failwith "we only ac(opium)cept variables on left and expressions on right"
+  ;;
+
   let rec absintCmd currCmd glblState nextLabel =
     match currCmd with
     | Seq (_, cmd1, cmd2) -> absintCmd cmd1 glblState (Util.findLabel cmd2)
@@ -81,9 +105,9 @@ end = struct
       let label2 = Util.findLabel cmd2 in
       List.fold [ label1; label2 ] ~init:[] ~f:(fun acc label ->
         let nextMem =
-          match Hashtbl.find glblState label with
-          | None -> Hashtbl.create (module String)
-          | Some mem -> mem
+          Option.value
+            (Hashtbl.find glblState label)
+            ~default:(Hashtbl.create (module String))
         in
         if Memory.( <> ) curMem nextMem
         then (
@@ -93,17 +117,20 @@ end = struct
         else if Hashtbl.is_empty curMem && Hashtbl.is_empty nextMem
         then label :: acc
         else acc)
+    | Assume (lbl, _cond) ->
+      let _ =
+        match Hashtbl.find glblState lbl with
+        | None -> Hashtbl.create (module String)
+        | Some mem -> Hashtbl.copy mem
+      in
+      failwith "todo"
     | Assign (lbl, var, exp) ->
       let curMem =
         match Hashtbl.find glblState lbl with
         | None -> Hashtbl.create (module String)
         | Some mem -> Hashtbl.copy mem
       in
-      let oldBint =
-        match Hashtbl.find curMem var with
-        | None -> None
-        | Some b -> b
-      in
+      let oldBint = Option.value (Hashtbl.find curMem var) ~default:None in
       let newBint = absintExpr exp curMem in
       let joinBint = Binterval.join oldBint newBint in
       let _ = Hashtbl.set curMem ~key:var ~data:joinBint in
