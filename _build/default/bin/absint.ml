@@ -93,6 +93,16 @@ end = struct
         else if Hashtbl.is_empty curMem && Hashtbl.is_empty nextMem
         then label :: acc
         else acc)
+
+    | Assume (lbl, cond) -> 
+      let curMem = 
+        match Hashtbl.find glblState lbl with 
+        | None -> Hashtbl.create (module String)
+        | Some mem -> Hashtbl.copy mem
+      in 
+
+      failwith "todo"
+
     | Assign (lbl, var, exp) ->
       let curMem =
         match Hashtbl.find glblState lbl with
