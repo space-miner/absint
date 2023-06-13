@@ -12,8 +12,8 @@ module Interval : sig
 end = struct
   type t = (BigInt.t * BigInt.t) option
 
-  let is_subset (t1 : t) (t2 : t) =
-    match t1, t2 with
+  let is_subset t t' =
+    match t, t' with
     | None, _ -> true
     | _, None -> false
     | Some (lo1, hi1), Some (lo2, hi2) ->
@@ -36,15 +36,13 @@ end = struct
   let ( - ) t t' =
     match t, t' with
     | None, _ | _, None -> failwith "err"
-    | Some (lo1, hi1), Some (lo2, hi2) ->
-      Some (BigInt.( - ) lo1 hi2, BigInt.( - ) hi1 lo2)
+    | Some (lo1, hi1), Some (lo2, hi2) -> Some (BigInt.( - ) lo1 hi2, BigInt.( - ) hi1 lo2)
   ;;
 
   let ( + ) t t' =
     match t, t' with
     | None, _ | _, None -> failwith "err"
-    | Some (lo1, hi1), Some (lo2, hi2) ->
-      Some (BigInt.( + ) lo1 lo2, BigInt.( + ) hi1 hi2)
+    | Some (lo1, hi1), Some (lo2, hi2) -> Some (BigInt.( + ) lo1 lo2, BigInt.( + ) hi1 hi2)
   ;;
 
   let binop op t t' =
