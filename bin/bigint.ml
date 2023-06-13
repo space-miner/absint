@@ -1,4 +1,4 @@
-module Extinct : sig
+module BigInt : sig
   type t =
     | PosInf
     | NegInf
@@ -9,14 +9,14 @@ module Extinct : sig
   val ( == ) : t -> t -> bool
   val min : t -> t -> t
   val max : t -> t -> t
-  val toString : t -> string
+  val to_string : t -> string
 end = struct
   type t =
     | PosInf
     | NegInf
     | Int of Z.t
 
-  let toString x =
+  let to_string x =
     match x with
     | PosInf -> "PosInf"
     | NegInf -> "NegInf"

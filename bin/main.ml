@@ -1,6 +1,6 @@
 open Base
 open Absint
-open Binterval
+open Interval
 open Astprint
 
 let () =
@@ -14,7 +14,7 @@ let () =
         let _ = Stdio.printf "label%d: \n" lbl in
         Hashtbl.iteri mem ~f:(fun ~key:var ~data:d ->
           let _ = Stdio.printf "%s: " var in
-          let s = Binterval.toString d in
+          let s = Interval.to_string d in
           Stdio.printf "%s\n" s))
     in
     print_prog p 0

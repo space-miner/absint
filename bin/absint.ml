@@ -1,25 +1,25 @@
 open Base
-open Binterval
-open Extinct
+open Interval
+open Bigint
 open Syntax
 open Util
 
 
 module Memory : sig
-  type t = (var, Binterval.t) Hashtbl.t
+  type t = (var, Interval.t) Hashtbl.t
 
   val ( == ) : t -> t -> bool
   val ( <> ) : t -> t -> bool
   val join : t -> t -> t
 end = struct
-  type t = (var, Binterval.t) Hashtbl.t
+  type t = (var, Interval.t) Hashtbl.t
 
   let is_subset t1 t2 =
     Hashtbl.fold
       ~init:true
       ~f:(fun ~key:var ~data:bint1 bool_acc ->
         let bint2 = Option.value (Hashtbl.find t2 var) ~default: None in
-        Binterval.is_subset bint1 bint2 && bool_acc)
+        Interval.is_subset bint1 bint2 && bool_acc)
       t1
   ;;
 
@@ -33,7 +33,7 @@ end = struct
         match Hashtbl.find t1 variable with
         | None -> acc
         | Some interval' ->
-          let interval'' = Binterval.join interval interval' in
+          let interval'' = Interval.join interval interval' in
           let _ = Hashtbl.set acc ~key:variable ~data:interval'' in
           acc)
       t2
@@ -41,9 +41,9 @@ end = struct
 end
 
 module Absint : sig
-  val absintExpr : expr -> Memory.t -> Binterval.t
+  val absintExpr : expr -> Memory.t -> Interval.t
   val absintCmd : cmd -> (label, Memory.t) Hashtbl.t -> label -> label list
-  val absintIter : prog -> Memory.t -> (label, (var, Binterval.t) Hashtbl.t) Hashtbl.t
+  val absintIter : prog -> Memory.t -> (label, (var, Interval.t) Hashtbl.t) Hashtbl.t
 
   val absintIterLoop
     :  label Base.Stack.t
@@ -54,18 +54,18 @@ module Absint : sig
 end = struct
   let rec absintExpr exp (mem : Memory.t) =
     match exp with
-    | Const c -> Some (Extinct.Int c, Extinct.Int c)
+    | Const c -> Some (BigInt.Int c, BigInt.Int c)
     | Var x ->
       (match Hashtbl.find mem x with
        | Some x -> x
        | None -> failwith "todo, none or [-inf, inf]")
     | Binop (op, exp1, exp2) ->
       (match op with
-       | Add -> Binterval.( + ) (absintExpr exp1 mem) (absintExpr exp2 mem)
-       | Sub -> Binterval.( - ) (absintExpr exp1 mem) (absintExpr exp2 mem))
+       | Add -> Interval.( + ) (absintExpr exp1 mem) (absintExpr exp2 mem)
+       | Sub -> Interval.( - ) (absintExpr exp1 mem) (absintExpr exp2 mem))
   ;;
 
-  let absintCond (Cmp (compare_operation, left_expression, right_expression)) (memory:Memory.t) : Binterval.t =
+  let absintCond (Cmp (compare_operation, left_expression, right_expression)) (memory:Memory.t) : Interval.t =
     match left_expression with
     | Var x -> 
       let right_interval = absintExpr right_expression memory in
@@ -73,11 +73,11 @@ end = struct
       | Less -> 
         (* if right interval is [4,11] modified will be [-inf, 10] -- to generalize [a,b] -> [-inf, b-1]*)
         let modified_right_interval = match right_interval with
-          | Some (_, hi) -> Binterval.( - ) (Some (Extinct.NegInf, hi)) (Some (Extinct.Int Z.one, Extinct.Int Z.one))
+          | Some (_, hi) -> Interval.( - ) (Some (BigInt.NegInf, hi)) (Some (BigInt.Int Z.one, BigInt.Int Z.one))
           | None -> None 
         in
         let left_interval = Option.value (Hashtbl.find memory x) ~default:None in
-        let joined_interval = Binterval.join left_interval modified_right_interval in 
+        let joined_interval = Interval.join left_interval modified_right_interval in 
         joined_interval
 
       | Equal -> 
@@ -88,7 +88,7 @@ end = struct
           right now we're just super over approximating:
         **)
         let left_interval = Option.value (Hashtbl.find memory x) ~default:None in
-        let joined_interval = Binterval.join left_interval right_interval in 
+        let joined_interval = Interval.join left_interval right_interval in 
         joined_interval)
     | _ -> failwith "we only ac(opium)cept variables on left and expressions on right"
 
@@ -145,7 +145,7 @@ end = struct
       in
       let oldBint = Option.value (Hashtbl.find curMem var) ~default:None in
       let newBint = absintExpr exp curMem in
-      let joinBint = Binterval.join oldBint newBint in
+      let joinBint = Interval.join oldBint newBint in
       let _ = Hashtbl.set curMem ~key:var ~data:joinBint in
       let nextMem = Option.value (Hashtbl.find glblState nextLabel) ~default:(Hashtbl.create (module String)) in
       if Memory.( <> ) curMem nextMem

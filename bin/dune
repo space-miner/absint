@@ -1,7 +1,7 @@
 (executable
  (public_name absint)
  (name main)
- (modules astprint absint extinct binterval util lexer main parser syntax)
+ (modules astprint absint bigint interval lexer main parser syntax util)
  (libraries base stdio stdlib zarith)
  (preprocess
   (pps ppx_jane ppx_sexp_conv)))
