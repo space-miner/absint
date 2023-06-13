@@ -1,8 +1,0 @@
-lib: [
-  "_build/install/default/lib/absint/META"
-  "_build/install/default/lib/absint/dune-package"
-  "_build/install/default/lib/absint/opam"
-]
-bin: [
-  "_build/install/default/bin/absint"
-]
