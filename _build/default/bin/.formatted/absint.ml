@@ -1,13 +1,33 @@
 open Base
-open Syntax
 open Binterval
+open Extinct
+open Syntax
+open Util
 
 module Memory : sig
   type t = (var, Binterval.t) Hashtbl.t
 
+  val ( == ) : t -> t -> bool
+  val ( <> ) : t -> t -> bool
   val join : t -> t -> t
 end = struct
   type t = (var, Binterval.t) Hashtbl.t
+
+  let is_subset t1 t2 =
+    Hashtbl.fold
+      ~init:true
+      ~f:(fun ~key:var ~data:bint1 bool_acc ->
+        let bint2 =
+          match Hashtbl.find t2 var with
+          | None -> None
+          | Some x -> x
+        in
+        Binterval.is_subset bint1 bint2 && bool_acc)
+      t1
+  ;;
+
+  let ( == ) (t1 : t) (t2 : t) = is_subset t1 t2 && is_subset t2 t1
+  let ( <> ) (t1 : t) (t2 : t) = not (t1 == t2)
 
   let join (t1 : t) (t2 : t) =
     Hashtbl.fold
@@ -30,10 +50,10 @@ module Absint : sig
 
   val absintIterLoop
     :  label Base.Stack.t
-    -> (label, (var, Binterval.t) Hashtbl.t) Hashtbl.t
+    -> (label, Memory.t) Hashtbl.t
     -> cmd
     -> label
-    -> (label, (var, Binterval.t) Hashtbl.t) Hashtbl.t
+    -> (label, Memory.t) Hashtbl.t
 end = struct
   let rec absintExpr exp (mem : Memory.t) =
     match exp with
@@ -48,10 +68,31 @@ end = struct
        | Sub -> Binterval.( - ) (absintExpr exp1 mem) (absintExpr exp2 mem))
   ;;
 
-  (* same as ai_step in the book *)
   let rec absintCmd currCmd glblState nextLabel =
     match currCmd with
     | Seq (_, cmd1, cmd2) -> absintCmd cmd1 glblState (Util.findLabel cmd2)
+    | Choice (lbl, cmd1, cmd2) ->
+      let curMem =
+        match Hashtbl.find glblState lbl with
+        | None -> Hashtbl.create (module String)
+        | Some mem -> Hashtbl.copy mem
+      in
+      let label1 = Util.findLabel cmd1 in
+      let label2 = Util.findLabel cmd2 in
+      List.fold [ label1; label2 ] ~init:[] ~f:(fun acc label ->
+        let nextMem =
+          match Hashtbl.find glblState label with
+          | None -> Hashtbl.create (module String)
+          | Some mem -> mem
+        in
+        if Memory.( <> ) curMem nextMem
+        then (
+          let joinMem = Memory.join curMem nextMem in
+          let _ = Hashtbl.set glblState ~key:label ~data:joinMem in
+          label :: acc)
+        else if Hashtbl.is_empty curMem && Hashtbl.is_empty nextMem
+        then label :: acc
+        else acc)
     | Assign (lbl, var, exp) ->
       let curMem =
         match Hashtbl.find glblState lbl with
@@ -71,7 +112,7 @@ end = struct
         | None -> Hashtbl.create (module String)
         | Some mem -> mem
       in
-      if Poly.( <> ) curMem nextMem
+      if Memory.( <> ) curMem nextMem
       then (
         let joinMem = Memory.join curMem nextMem in
         let _ = Hashtbl.set glblState ~key:nextLabel ~data:joinMem in
@@ -82,7 +123,7 @@ end = struct
 
   let rec absintIterLoop
     (stack : label Stack.t)
-    (global : (label, (var, Binterval.t) Hashtbl.t) Hashtbl.t)
+    (global : (label, Memory.t) Hashtbl.t)
     (constProg : cmd)
     (lExit : label)
     =
@@ -91,7 +132,7 @@ end = struct
     else (
       let label = Stack.pop_exn stack in
       match Util.findCmd constProg label with
-      | None -> failwith "findCmd err in absintIterLoop"
+      | None -> absintIterLoop stack global constProg lExit
       | Some command ->
         (match Util.findNextLabel constProg label lExit with
          | None -> failwith "findNextLabel err in absintIterLoop"
