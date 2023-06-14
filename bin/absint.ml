@@ -108,9 +108,9 @@ end = struct
   let rec absint_command currCmd glblState nextLabel =
     match currCmd with
     | Seq (_, cmd1, cmd2) -> absint_command cmd1 glblState (Util.find_label cmd2)
-    | While (lbl, cond, cmd) ->
+    | While (while_label, cond, cmd) ->
       let curMem =
-        match Hashtbl.find glblState lbl with
+        match Hashtbl.find glblState while_label with
         | None -> Hashtbl.create (module String)
         | Some mem -> Hashtbl.copy mem
       in
@@ -124,7 +124,6 @@ end = struct
             "No variable in Condition expression. public static void assume \
              absint_command failure."
       in
-      let _ = Stdio.printf "%d\n" lbl in
       let var_interval = Option.value (Hashtbl.find curMem var) ~default:None in
       let meet_interval1 = Interval.meet cond_interval var_interval in
       let meet_interval2 = Interval.meet (Interval.not cond_interval) var_interval in
@@ -132,7 +131,6 @@ end = struct
         [ label, meet_interval1; nextLabel, meet_interval2 ]
         ~init:[]
         ~f:(fun acc (lbl, meet) ->
-          let _ = Stdio.printf "inside fold %d\n" lbl in
           let curMemPrime = Hashtbl.copy curMem in
           let _ = Hashtbl.set curMemPrime ~key:var ~data:meet in
           let nextMem =
@@ -143,9 +141,6 @@ end = struct
           if Memory.( <> ) curMemPrime nextMem
           then (
             let joinMem = Memory.join curMemPrime nextMem in
-            let _ = Hashtbl.iteri joinMem ~f:(fun ~key:var ~data:data -> 
-                          Stdio.printf "joinMem label:%d var:%s interval:%s\n" lbl (var) (Interval.to_string data))
-            in
             let _ = Hashtbl.set glblState ~key:lbl ~data:joinMem in
             lbl :: acc)
           else if Hashtbl.is_empty curMemPrime && Hashtbl.is_empty nextMem
