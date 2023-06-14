@@ -115,7 +115,7 @@ end = struct
         | Some mem -> Hashtbl.copy mem
       in
       let cond_interval = absint_condition cond curMem in
-      let label = Util.find_label cmd in
+      let cmd_label = Util.find_label cmd in
       let var =
         match cond with
         | Cmp (_, Var x, _) -> x
@@ -128,7 +128,7 @@ end = struct
       let meet_interval1 = Interval.meet cond_interval var_interval in
       let meet_interval2 = Interval.meet (Interval.not cond_interval) var_interval in
       List.fold
-        [ label, meet_interval1; nextLabel, meet_interval2 ]
+        [ cmd_label, meet_interval1; nextLabel, meet_interval2 ]
         ~init:[]
         ~f:(fun acc (lbl, meet) ->
           let curMemPrime = Hashtbl.copy curMem in

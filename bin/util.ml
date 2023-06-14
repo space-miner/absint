@@ -25,7 +25,7 @@ end = struct
       if lbl = label
       then Some next_label
       else (
-        match find_next_label cmd label next_label with
+        match find_next_label cmd label lbl with
         | None -> None
         | label_opt -> label_opt)
     | Choice (lbl, cmd1, cmd2) ->
