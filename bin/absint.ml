@@ -16,16 +16,16 @@ end = struct
   let is_subset t1 t2 =
     Hashtbl.fold
       ~init:true
-      ~f:(fun ~key:var ~data:bint1 bool_acc ->
-        let bint2 = Option.value (Hashtbl.find t2 var) ~default:None in
-        Interval.is_subset bint1 bint2 && bool_acc)
+      ~f:(fun ~key:var ~data:interval1 bool_acc ->
+        let interval2 = Option.value (Hashtbl.find t2 var) ~default:None in
+        Interval.is_subset interval1 interval2 && bool_acc)
       t1
   ;;
 
-  let ( == ) (t1 : t) (t2 : t) = is_subset t1 t2 && is_subset t2 t1
-  let ( <> ) (t1 : t) (t2 : t) = not (t1 == t2)
+  let ( == ) t1 t2 = is_subset t1 t2 && is_subset t2 t1
+  let ( <> ) t1 t2 = not (t1 == t2)
 
-  let join (t1 : t) (t2 : t) =
+  let join t1 t2 =
     Hashtbl.fold
       ~init:t1
       ~f:(fun ~key:variable ~data:interval acc ->
@@ -51,7 +51,7 @@ module Absint : sig
     -> label
     -> (label, Memory.t) Hashtbl.t
 end = struct
-  let rec absint_expression expression (memory : Memory.t) =
+  let rec absint_expression expression memory =
     match expression with
     | Const c -> Some (BigInt.Int c, BigInt.Int c)
     | Var x ->
@@ -108,6 +108,49 @@ end = struct
   let rec absint_command currCmd glblState nextLabel =
     match currCmd with
     | Seq (_, cmd1, cmd2) -> absint_command cmd1 glblState (Util.find_label cmd2)
+    | While (lbl, cond, cmd) ->
+      let curMem =
+        match Hashtbl.find glblState lbl with
+        | None -> Hashtbl.create (module String)
+        | Some mem -> Hashtbl.copy mem
+      in
+      let cond_interval = absint_condition cond curMem in
+      let label = Util.find_label cmd in
+      let var =
+        match cond with
+        | Cmp (_, Var x, _) -> x
+        | _ ->
+          failwith
+            "No variable in Condition expression. public static void assume \
+             absint_command failure."
+      in
+      let _ = Stdio.printf "%d\n" lbl in
+      let var_interval = Option.value (Hashtbl.find curMem var) ~default:None in
+      let meet_interval1 = Interval.meet cond_interval var_interval in
+      let meet_interval2 = Interval.meet (Interval.not cond_interval) var_interval in
+      List.fold
+        [ label, meet_interval1; nextLabel, meet_interval2 ]
+        ~init:[]
+        ~f:(fun acc (lbl, meet) ->
+          let _ = Stdio.printf "inside fold %d\n" lbl in
+          let curMemPrime = Hashtbl.copy curMem in
+          let _ = Hashtbl.set curMemPrime ~key:var ~data:meet in
+          let nextMem =
+            Option.value
+              (Hashtbl.find glblState lbl)
+              ~default:(Hashtbl.create (module String))
+          in
+          if Memory.( <> ) curMemPrime nextMem
+          then (
+            let joinMem = Memory.join curMemPrime nextMem in
+            let _ = Hashtbl.iteri joinMem ~f:(fun ~key:var ~data:data -> 
+                          Stdio.printf "joinMem label:%d var:%s interval:%s\n" lbl (var) (Interval.to_string data))
+            in
+            let _ = Hashtbl.set glblState ~key:lbl ~data:joinMem in
+            lbl :: acc)
+          else if Hashtbl.is_empty curMemPrime && Hashtbl.is_empty nextMem
+          then lbl :: acc
+          else acc) 
     | Choice (lbl, cmd1, cmd2) ->
       let curMem =
         match Hashtbl.find glblState lbl with
@@ -178,7 +221,6 @@ end = struct
         Hashtbl.set glblState ~key:nextLabel ~data:joinMem;
         [ nextLabel ])
       else []
-    | _ -> failwith "todo"
   ;;
 
   let rec absint_iter_loop
@@ -202,11 +244,11 @@ end = struct
            absint_iter_loop stack global constProg lExit))
   ;;
 
-  let absint_iter (Prog (cmd, l)) initMem =
-    let initLabel = Util.find_label cmd in
-    let worklist = Base.Stack.of_list [ initLabel ] in
-    let glbl = Hashtbl.create (module Int) in
-    let _ = Hashtbl.set glbl ~key:initLabel ~data:initMem in
-    absint_iter_loop worklist glbl cmd l
+  let absint_iter (Prog (command, label)) initial_memory =
+    let init_label = Util.find_label command in
+    let worklist = Base.Stack.of_list [ init_label ] in
+    let global = Hashtbl.create (module Int) in
+    let _ = Hashtbl.set global ~key:init_label ~data:initial_memory in
+    absint_iter_loop worklist global command label
   ;;
 end
