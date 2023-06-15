@@ -206,13 +206,16 @@ end = struct
       let _ = Stdio.printf "label %d\n" lbl in
       let _ = Stdio.printf "Current %s\n" (Memory.to_string curMem) in
       let _ = Stdio.printf "\nNext %s\n" (Memory.to_string nextMem) in
-      let _ = Stdio.printf "-----------------\n" in
       if Memory.( <> ) curMem nextMem
       then (
         let joinMem = Memory.join curMem nextMem in
+        let _ = Stdio.printf "\nJoin %s\n" (Memory.to_string joinMem) in
+        let _ = Stdio.printf "-----------------\n" in
         Hashtbl.set glblState ~key:nextLabel ~data:joinMem;
         [ nextLabel ])
-      else []
+      else
+        let _ = Stdio.printf "-----------------\n" in
+        []
   ;;
 
   let rec absint_iter_loop
