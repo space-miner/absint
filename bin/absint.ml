@@ -2,42 +2,8 @@ open Base
 open Interval
 open Bigint
 open Syntax
+open Memory
 open Util
-
-module Memory : sig
-  type t = (var, Interval.t) Hashtbl.t
-
-  val ( == ) : t -> t -> bool
-  val ( <> ) : t -> t -> bool
-  val join : t -> t -> t
-end = struct
-  type t = (var, Interval.t) Hashtbl.t
-
-  let is_subset t1 t2 =
-    Hashtbl.fold
-      ~init:true
-      ~f:(fun ~key:var ~data:interval1 bool_acc ->
-        let interval2 = Option.value (Hashtbl.find t2 var) ~default:None in
-        Interval.is_subset interval1 interval2 && bool_acc)
-      t1
-  ;;
-
-  let ( == ) t1 t2 = is_subset t1 t2 && is_subset t2 t1
-  let ( <> ) t1 t2 = not (t1 == t2)
-
-  let join t1 t2 =
-    Hashtbl.fold
-      ~init:t1
-      ~f:(fun ~key:variable ~data:interval acc ->
-        match Hashtbl.find t1 variable with
-        | None -> acc
-        | Some interval' ->
-          let interval'' = Interval.join interval interval' in
-          let _ = Hashtbl.set acc ~key:variable ~data:interval'' in
-          acc)
-      t2
-  ;;
-end
 
 module Absint : sig
   val absint_expression : expr -> Memory.t -> Interval.t
@@ -45,7 +11,7 @@ module Absint : sig
   val absint_iter : prog -> Memory.t -> (label, (var, Interval.t) Hashtbl.t) Hashtbl.t
 
   val absint_iter_loop
-    :  label Base.Stack.t
+    :  label Stack.t
     -> (label, Memory.t) Hashtbl.t
     -> cmd
     -> label
@@ -70,26 +36,26 @@ end = struct
            (absint_expression right_expression memory))
   ;;
 
-  let absint_neg_condition 
-  (Cmp (compare_operation, left_expression, right_expression))
-  (memory : Memory.t)
-  : Interval.t
-  =
-  match left_expression with
-  | Var _ ->
-    let right_interval = absint_expression right_expression memory in
-    (match compare_operation with
-     | Less ->
-       (* if right interval is [4,11] modified will be [5, inf] -- to generalize [a,b] -> [a, inf]*)
-       let modified_right_interval =
-         match right_interval with
-         | Some (_,hi) -> Some(hi, BigInt.PosInf)
-         | None -> None
-       in
-       modified_right_interval
-     | Equal -> Some (BigInt.NegInf, BigInt.PosInf))
-  | _ -> failwith "we only ac(opium)cept variables on left and expressions on right"
-;;
+  let absint_neg_condition
+    (Cmp (compare_operation, left_expression, right_expression))
+    (memory : Memory.t)
+    : Interval.t
+    =
+    match left_expression with
+    | Var _ ->
+      let right_interval = absint_expression right_expression memory in
+      (match compare_operation with
+       | Less ->
+         (* if right interval is [4,11] modified will be [5, inf] -- to generalize [a,b] -> [a, inf]*)
+         let modified_right_interval =
+           match right_interval with
+           | Some (_, hi) -> Some (hi, BigInt.PosInf)
+           | None -> None
+         in
+         modified_right_interval
+       | Equal -> Some (BigInt.NegInf, BigInt.PosInf))
+    | _ -> failwith "we only ac(opium)cept variables on left and expressions on right"
+  ;;
 
   let absint_condition
     (Cmp (compare_operation, left_expression, right_expression))
@@ -147,35 +113,32 @@ end = struct
       let var_interval = Option.value (Hashtbl.find curMem var) ~default:None in
       let meet_interval1 = Interval.meet cond_interval var_interval in
       let meet_interval2 = Interval.meet neg_cond_interval var_interval in
-      let meets =  
-        match meet_interval1, meet_interval2 with 
+      let meets =
+        match meet_interval1, meet_interval2 with
         | None, None -> []
-        | Some m1, None -> [cmd_label, Some m1]
-        | None, Some m2 -> [nextLabel, Some m2]
-        | Some m1, Some m2 -> [(cmd_label, Some m1); (nextLabel, Some m2)]
+        | Some m1, None -> [ cmd_label, Some m1 ]
+        | None, Some m2 -> [ nextLabel, Some m2 ]
+        | Some m1, Some m2 -> [ cmd_label, Some m1; nextLabel, Some m2 ]
       in
       (*let _ = Stdio.printf "%s %s %s\n" (Interval.to_string var_interval) (Interval.to_string cond_interval) (Interval.to_string meet_interval1) in
       let _ = Stdio.printf "%s %s %s\n" (Interval.to_string var_interval) (Interval.to_string neg_cond_interval) (Interval.to_string meet_interval2) in
       *)
-      List.fold
-        meets
-        ~init:[]
-        ~f:(fun acc (lbl, meet) ->
-          let curMemPrime = Hashtbl.copy curMem in
-          let _ = Hashtbl.set curMemPrime ~key:var ~data:meet in
-          let nextMem =
-            Option.value
-              (Hashtbl.find glblState lbl)
-              ~default:(Hashtbl.create (module String))
-          in
-          if Memory.( <> ) curMemPrime nextMem
-          then (
-            let joinMem = Memory.join curMemPrime nextMem in
-            let _ = Hashtbl.set glblState ~key:lbl ~data:joinMem in
-            lbl :: acc)
-          else if Hashtbl.is_empty curMemPrime && Hashtbl.is_empty nextMem
-          then lbl :: acc
-          else acc) 
+      List.fold meets ~init:[] ~f:(fun acc (lbl, meet) ->
+        let curMemPrime = Hashtbl.copy curMem in
+        let _ = Hashtbl.set curMemPrime ~key:var ~data:meet in
+        let nextMem =
+          Option.value
+            (Hashtbl.find glblState lbl)
+            ~default:(Hashtbl.create (module String))
+        in
+        if Memory.( <> ) curMemPrime nextMem
+        then (
+          let joinMem = Memory.join curMemPrime nextMem in
+          let _ = Hashtbl.set glblState ~key:lbl ~data:joinMem in
+          lbl :: acc)
+        else if Hashtbl.is_empty curMemPrime && Hashtbl.is_empty nextMem
+        then lbl :: acc
+        else acc)
     | Choice (lbl, cmd1, cmd2) ->
       let curMem =
         match Hashtbl.find glblState lbl with
@@ -240,6 +203,10 @@ end = struct
           (Hashtbl.find glblState nextLabel)
           ~default:(Hashtbl.create (module String))
       in
+      let _ = Stdio.printf "label %d\n" lbl in
+      let _ = Stdio.printf "Current %s\n" (Memory.to_string curMem) in
+      let _ = Stdio.printf "\nNext %s\n" (Memory.to_string nextMem) in
+      let _ = Stdio.printf "-----------------\n" in
       if Memory.( <> ) curMem nextMem
       then (
         let joinMem = Memory.join curMem nextMem in
@@ -258,7 +225,6 @@ end = struct
     then global
     else (
       let label = Stack.pop_exn stack in
-      let _ = Stdio.printf "pop\n\n" in 
       match Util.find_command constProg label with
       | None -> absint_iter_loop stack global constProg lExit
       | Some command ->

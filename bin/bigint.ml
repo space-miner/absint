@@ -17,12 +17,12 @@ end = struct
     | NegInf
     | Int of Z.t
 
-  let (<) t t' = 
-    match t, t' with 
-    | PosInf, _ | _, NegInf -> false 
-    | NegInf, _ | _, PosInf -> true 
+  let ( < ) t t' =
+    match t, t' with
+    | PosInf, _ | _, NegInf -> false
+    | NegInf, _ | _, PosInf -> true
     | Int x1, Int x2 -> x1 < x2
-
+  ;;
 
   let to_string x =
     match x with
