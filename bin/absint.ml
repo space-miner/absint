@@ -70,6 +70,27 @@ end = struct
            (absint_expression right_expression memory))
   ;;
 
+  let absint_neg_condition 
+  (Cmp (compare_operation, left_expression, right_expression))
+  (memory : Memory.t)
+  : Interval.t
+  =
+  match left_expression with
+  | Var _ ->
+    let right_interval = absint_expression right_expression memory in
+    (match compare_operation with
+     | Less ->
+       (* if right interval is [4,11] modified will be [5, inf] -- to generalize [a,b] -> [a, inf]*)
+       let modified_right_interval =
+         match right_interval with
+         | Some (_,hi) -> Some(hi, BigInt.PosInf)
+         | None -> None
+       in
+       modified_right_interval
+     | Equal -> Some (BigInt.NegInf, BigInt.PosInf))
+  | _ -> failwith "we only ac(opium)cept variables on left and expressions on right"
+;;
+
   let absint_condition
     (Cmp (compare_operation, left_expression, right_expression))
     (memory : Memory.t)
@@ -89,9 +110,7 @@ end = struct
                (Some (BigInt.Int Z.one, BigInt.Int Z.one))
            | None -> None
          in
-         let left_interval = Option.value (Hashtbl.find memory x) ~default:None in
-         let joined_interval = Interval.join left_interval modified_right_interval in
-         joined_interval
+         modified_right_interval
        | Equal ->
          (* 
           we can overwrite x with the right_interval if the worklist processes items inorder -- i.e. 
@@ -115,6 +134,7 @@ end = struct
         | Some mem -> Hashtbl.copy mem
       in
       let cond_interval = absint_condition cond curMem in
+      let neg_cond_interval = absint_neg_condition cond curMem in
       let cmd_label = Util.find_label cmd in
       let var =
         match cond with
@@ -126,7 +146,10 @@ end = struct
       in
       let var_interval = Option.value (Hashtbl.find curMem var) ~default:None in
       let meet_interval1 = Interval.meet cond_interval var_interval in
-      let meet_interval2 = Interval.meet (Interval.not cond_interval) var_interval in
+      let meet_interval2 = Interval.meet neg_cond_interval var_interval in
+      (*let _ = Stdio.printf "%s %s %s\n" (Interval.to_string var_interval) (Interval.to_string cond_interval) (Interval.to_string meet_interval1) in
+      let _ = Stdio.printf "%s %s %s\n" (Interval.to_string var_interval) (Interval.to_string neg_cond_interval) (Interval.to_string meet_interval2) in
+      *)
       List.fold
         [ cmd_label, meet_interval1; nextLabel, meet_interval2 ]
         ~init:[]

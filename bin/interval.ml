@@ -44,7 +44,7 @@ end = struct
     match t1, t2 with
     | None, _ | _, None -> None
     | Some (lo1, hi1), Some (lo2, hi2) ->
-      if hi1 < lo2 || hi2 < lo1
+      if (BigInt.(<) hi1 lo2) || (BigInt.(<) hi2 lo1) 
       then None
       else Some (BigInt.max lo1 lo2, BigInt.min hi1 hi2)
   ;;

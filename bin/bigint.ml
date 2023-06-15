@@ -7,6 +7,7 @@ module BigInt : sig
   val ( + ) : t -> t -> t
   val ( - ) : t -> t -> t
   val ( == ) : t -> t -> bool
+  val ( < ) : t -> t -> bool
   val min : t -> t -> t
   val max : t -> t -> t
   val to_string : t -> string
@@ -15,6 +16,13 @@ end = struct
     | PosInf
     | NegInf
     | Int of Z.t
+
+  let (<) t t' = 
+    match t, t' with 
+    | PosInf, _ | _, NegInf -> false 
+    | NegInf, _ | _, PosInf -> true 
+    | Int x1, Int x2 -> x1 < x2
+
 
   let to_string x =
     match x with

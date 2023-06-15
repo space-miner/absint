@@ -3,7 +3,7 @@
 # Shared cache: disabled
 # Workspace root: /home/artjomplaunov/repos/absint
 # Auto-detected concurrency: 8
-$ /home/artjomplaunov/.opam/5.0.0/bin/ocamlc.opt -config > /tmp/dune_66e699_output
+$ /home/artjomplaunov/.opam/5.0.0/bin/ocamlc.opt -config > /tmp/dune_c51352_output
 # Dune context:
 #  { name = "default"
 #  ; kind = "default"

@@ -17,7 +17,10 @@ let () =
           let s = Interval.to_string d in
           Stdio.printf "%s\n" s))
     in
+    let i = Interval.meet (Some (Int (Z.of_int 0), Int (Z.of_int 5))) (Some (Int (Z.of_int 3) , PosInf)) in
+    let _ = Stdio.printf "%s\n" (Interval.to_string i) in 
     print_prog p 0
+
   with
   | Lexer.Error msg -> Stdio.printf "%s%!" msg
   | Parser.Error ->
