@@ -147,11 +147,18 @@ end = struct
       let var_interval = Option.value (Hashtbl.find curMem var) ~default:None in
       let meet_interval1 = Interval.meet cond_interval var_interval in
       let meet_interval2 = Interval.meet neg_cond_interval var_interval in
+      let meets =  
+        match meet_interval1, meet_interval2 with 
+        | None, None -> []
+        | Some m1, None -> [cmd_label, Some m1]
+        | None, Some m2 -> [nextLabel, Some m2]
+        | Some m1, Some m2 -> [(cmd_label, Some m1); (nextLabel, Some m2)]
+      in
       (*let _ = Stdio.printf "%s %s %s\n" (Interval.to_string var_interval) (Interval.to_string cond_interval) (Interval.to_string meet_interval1) in
       let _ = Stdio.printf "%s %s %s\n" (Interval.to_string var_interval) (Interval.to_string neg_cond_interval) (Interval.to_string meet_interval2) in
       *)
       List.fold
-        [ cmd_label, meet_interval1; nextLabel, meet_interval2 ]
+        meets
         ~init:[]
         ~f:(fun acc (lbl, meet) ->
           let curMemPrime = Hashtbl.copy curMem in
@@ -251,6 +258,7 @@ end = struct
     then global
     else (
       let label = Stack.pop_exn stack in
+      let _ = Stdio.printf "pop\n\n" in 
       match Util.find_command constProg label with
       | None -> absint_iter_loop stack global constProg lExit
       | Some command ->
