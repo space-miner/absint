@@ -18,7 +18,6 @@ let () =
           Stdio.printf "%s\n" s))
     in
     print_prog p 0
-
   with
   | Lexer.Error msg -> Stdio.printf "%s%!" msg
   | Parser.Error ->
