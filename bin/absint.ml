@@ -87,7 +87,8 @@ end = struct
          let left_interval = Option.value (Hashtbl.find memory x) ~default:None in
          let joined_interval = Interval.join left_interval right_interval in
          joined_interval)
-    | _ -> failwith "we only ac(opium)cept variables on left and expressions on right"
+    | _ -> failwith "we only ac(opium)cept variables on \ 
+    left and expressions on right"
   ;;
 
   let rec absint_command currCmd glblState nextLabel =
@@ -120,9 +121,6 @@ end = struct
         | None, Some m2 -> [ nextLabel, Some m2 ]
         | Some m1, Some m2 -> [ cmd_label, Some m1; nextLabel, Some m2 ]
       in
-      (*let _ = Stdio.printf "%s %s %s\n" (Interval.to_string var_interval) (Interval.to_string cond_interval) (Interval.to_string meet_interval1) in
-      let _ = Stdio.printf "%s %s %s\n" (Interval.to_string var_interval) (Interval.to_string neg_cond_interval) (Interval.to_string meet_interval2) in
-      *)
       List.fold meets ~init:[] ~f:(fun acc (lbl, meet) ->
         let curMemPrime = Hashtbl.copy curMem in
         let _ = Hashtbl.set curMemPrime ~key:var ~data:meet in
@@ -195,6 +193,7 @@ end = struct
         | Some mem -> Hashtbl.copy mem
       in
       let oldBint = Option.value (Hashtbl.find curMem var) ~default:None in
+      
       let newBint = absint_expression exp curMem in
       let joinBint = Interval.join oldBint newBint in
       let _ = Hashtbl.set curMem ~key:var ~data:joinBint in
@@ -203,14 +202,14 @@ end = struct
           (Hashtbl.find glblState nextLabel)
           ~default:(Hashtbl.create (module String))
       in
-      let _ = Stdio.printf "label %d\n" lbl in
+      (*let _ = Stdio.printf "label %d\n" lbl in
       let _ = Stdio.printf "Current %s\n" (Memory.to_string curMem) in
-      let _ = Stdio.printf "\nNext %s\n" (Memory.to_string nextMem) in
+      let _ = Stdio.printf "\nNext %s\n" (Memory.to_string nextMem) in*)
       if Memory.( <> ) curMem nextMem
       then (
         let joinMem = Memory.join curMem nextMem in
-        let _ = Stdio.printf "\nJoin %s\n" (Memory.to_string joinMem) in
-        let _ = Stdio.printf "-----------------\n" in
+        (*let _ = Stdio.printf "\nJoin %s\n" (Memory.to_string joinMem) in
+        let _ = Stdio.printf "-----------------\n" in*)
         Hashtbl.set glblState ~key:nextLabel ~data:joinMem;
         [ nextLabel ])
       else
