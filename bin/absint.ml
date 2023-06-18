@@ -46,7 +46,6 @@ end = struct
       let right_interval = absint_expression right_expression memory in
       (match compare_operation with
        | Less ->
-         (* if right interval is [4,11] modified will be [5, inf] -- to generalize [a,b] -> [a, inf]*)
          let modified_right_interval =
            match right_interval with
            | Some (_, hi) -> Some (hi, BigInt.PosInf)
@@ -67,7 +66,6 @@ end = struct
       let right_interval = absint_expression right_expression memory in
       (match compare_operation with
        | Less ->
-         (* if right interval is [4,11] modified will be [-inf, 10] -- to generalize [a,b] -> [-inf, b-1]*)
          let modified_right_interval =
            match right_interval with
            | Some (_, hi) ->
@@ -78,12 +76,6 @@ end = struct
          in
          modified_right_interval
        | Equal ->
-         (* 
-          we can overwrite x with the right_interval if the worklist processes items inorder -- i.e. 
-          it never processes something that comes before an assume after processing an assume.contents
-
-          right now we're just super over approximating:
-        *)
          let left_interval = Option.value (Hashtbl.find memory x) ~default:None in
          let joined_interval = Interval.join left_interval right_interval in
          joined_interval)
@@ -95,23 +87,11 @@ end = struct
     match currCmd with
     | Seq (lbl, cmd1, cmd2) -> 
       let first_label = Util.find_label cmd1 in 
-      let nextMem = 
-        match Hashtbl.find glblState lbl with
-        | None -> Hashtbl.create (module String)
-        | Some mem -> Hashtbl.copy mem
-      in
+      let nextMem = Util.get_global_mem glblState lbl in
       let _ = Hashtbl.set glblState ~key:first_label ~data:nextMem in 
       absint_command cmd1 glblState (Util.find_label cmd2)
     | While (while_label, cond, cmd) ->
-      (*
-      let _ = Stdio.printf "%d\n" while_label in 
-      let _ = Util.print_global_mem glblState in
-      let _ = Stdio.printf "-----------------\n" in*)
-      let curMem =
-        match Hashtbl.find glblState while_label with
-        | None -> Hashtbl.create (module String)
-        | Some mem -> Hashtbl.copy mem
-      in
+      let curMem = Util.get_global_mem glblState while_label in 
       let cond_interval = absint_condition cond curMem in
       let neg_cond_interval = absint_neg_condition cond curMem in
       let cmd_label = Util.find_label cmd in
@@ -136,10 +116,7 @@ end = struct
       List.fold meets ~init:[] ~f:(fun acc (lbl, meet) ->
         let curMemPrime = Hashtbl.copy curMem in
         let _ = Hashtbl.set curMemPrime ~key:var ~data:meet in
-        let nextMem =
-          Option.value
-            (Hashtbl.find glblState lbl)
-            ~default:(Hashtbl.create (module String))
+        let nextMem = Util.get_global_mem glblState lbl 
         in
         if Memory.( <> ) curMemPrime nextMem
         then (
@@ -150,19 +127,11 @@ end = struct
         then lbl :: acc
         else acc)
     | Choice (lbl, cmd1, cmd2) ->
-      let curMem =
-        match Hashtbl.find glblState lbl with
-        | None -> Hashtbl.create (module String)
-        | Some mem -> Hashtbl.copy mem
-      in
+      let curMem = Util.get_global_mem glblState lbl in 
       let label1 = Util.find_label cmd1 in
       let label2 = Util.find_label cmd2 in
       List.fold [ label1; label2 ] ~init:[] ~f:(fun acc label ->
-        let nextMem =
-          Option.value
-            (Hashtbl.find glblState label)
-            ~default:(Hashtbl.create (module String))
-        in
+        let nextMem = Util.get_global_mem glblState label in 
         if Memory.( <> ) curMem nextMem
         then (
           let joinMem = Memory.join curMem nextMem in
@@ -180,11 +149,7 @@ end = struct
             "No variable in Condition expression. public static void assume \
              absint_command failure."
       in
-      let curMem =
-        match Hashtbl.find glblState lbl with
-        | None -> Hashtbl.create (module String)
-        | Some mem -> Hashtbl.copy mem
-      in
+      let curMem = Util.get_global_mem glblState lbl in 
       let cond_eval = absint_condition cond curMem in
       let _ = Hashtbl.set curMem ~key:v ~data:cond_eval in
       let nextMem =
@@ -199,29 +164,15 @@ end = struct
         [ nextLabel ])
       else []
     | Assign (lbl, var, exp) ->
-      (*
-      let _ = Stdio.printf "%d\n" lbl in 
-      let _ = Util.print_global_mem glblState in
-      let _ = Stdio.printf "-----------------\n" in*)
-      let curMem =
-        match Hashtbl.find glblState lbl with
-        | None -> Hashtbl.create (module String)
-        | Some mem -> Hashtbl.copy mem
-      in
+      let curMem = Util.get_global_mem glblState lbl in 
       let oldBint = Option.value (Hashtbl.find curMem var) ~default:None in
-      
       let newBint = absint_expression exp curMem in
       let joinBint = Interval.join oldBint newBint in
       let _ = Hashtbl.set curMem ~key:var ~data:joinBint in
-      let nextMem =
-        Option.value
-          (Hashtbl.find glblState nextLabel)
-          ~default:(Hashtbl.create (module String))
-      in
+      let nextMem = Util.get_global_mem glblState nextLabel in 
       if Memory.( <> ) curMem nextMem
       then (
         let joinMem = Memory.join curMem nextMem in
-        let _ = Stdio.printf "-----------------\n" in
         Hashtbl.set glblState ~key:nextLabel ~data:joinMem;
         [ nextLabel ])
       else

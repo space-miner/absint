@@ -9,7 +9,14 @@ module Util : sig
   val find_next_label : cmd -> int -> int -> int option
   val find_command : cmd -> int -> cmd option
   val print_global_mem : (Syntax.label, Memory.t) Base.Hashtbl.t -> unit
+  val get_global_mem : (Syntax.label, Memory.t) Base.Hashtbl.t -> label -> Memory.t
 end = struct
+
+  let get_global_mem global lbl = 
+    match Base.Hashtbl.find global lbl with 
+    | None -> Base.Hashtbl.create (module String)
+    | Some mem -> Base.Hashtbl.copy mem
+
 
   let print_global_mem global = 
     Base.Hashtbl.iteri global ~f:(fun ~key:lbl ~data:mem ->
@@ -18,7 +25,7 @@ end = struct
         let _ = Stdio.printf "%s: " var in
         let s = Interval.to_string d in
         Stdio.printf "%s\n" s))
-        
+
   let find_label command =
     match command with
     | Seq (l, _, _) | Assume (l, _) | While (l, _, _) | Choice (l, _, _) | Assign (l, _, _)
