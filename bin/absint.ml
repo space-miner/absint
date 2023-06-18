@@ -93,8 +93,20 @@ end = struct
 
   let rec absint_command currCmd glblState nextLabel =
     match currCmd with
-    | Seq (_, cmd1, cmd2) -> absint_command cmd1 glblState (Util.find_label cmd2)
+    | Seq (lbl, cmd1, cmd2) -> 
+      let first_label = Util.find_label cmd1 in 
+      let nextMem = 
+        match Hashtbl.find glblState lbl with
+        | None -> Hashtbl.create (module String)
+        | Some mem -> Hashtbl.copy mem
+      in
+      let _ = Hashtbl.set glblState ~key:first_label ~data:nextMem in 
+      absint_command cmd1 glblState (Util.find_label cmd2)
     | While (while_label, cond, cmd) ->
+      (*
+      let _ = Stdio.printf "%d\n" while_label in 
+      let _ = Util.print_global_mem glblState in
+      let _ = Stdio.printf "-----------------\n" in*)
       let curMem =
         match Hashtbl.find glblState while_label with
         | None -> Hashtbl.create (module String)
@@ -187,6 +199,10 @@ end = struct
         [ nextLabel ])
       else []
     | Assign (lbl, var, exp) ->
+      (*
+      let _ = Stdio.printf "%d\n" lbl in 
+      let _ = Util.print_global_mem glblState in
+      let _ = Stdio.printf "-----------------\n" in*)
       let curMem =
         match Hashtbl.find glblState lbl with
         | None -> Hashtbl.create (module String)
@@ -202,18 +218,13 @@ end = struct
           (Hashtbl.find glblState nextLabel)
           ~default:(Hashtbl.create (module String))
       in
-      (*let _ = Stdio.printf "label %d\n" lbl in
-      let _ = Stdio.printf "Current %s\n" (Memory.to_string curMem) in
-      let _ = Stdio.printf "\nNext %s\n" (Memory.to_string nextMem) in*)
       if Memory.( <> ) curMem nextMem
       then (
         let joinMem = Memory.join curMem nextMem in
-        (*let _ = Stdio.printf "\nJoin %s\n" (Memory.to_string joinMem) in
-        let _ = Stdio.printf "-----------------\n" in*)
+        let _ = Stdio.printf "-----------------\n" in
         Hashtbl.set glblState ~key:nextLabel ~data:joinMem;
         [ nextLabel ])
       else
-        let _ = Stdio.printf "-----------------\n" in
         []
   ;;
 

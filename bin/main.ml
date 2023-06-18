@@ -3,7 +3,6 @@ open Absint
 open Astprint
 open Util
 
-
 let () =
   let lexbuf = Lexing.from_channel Stdio.stdin in
   try

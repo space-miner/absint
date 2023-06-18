@@ -18,6 +18,7 @@ end = struct
         let _ = Stdio.printf "%s: " var in
         let s = Interval.to_string d in
         Stdio.printf "%s\n" s))
+        
   let find_label command =
     match command with
     | Seq (l, _, _) | Assume (l, _) | While (l, _, _) | Choice (l, _, _) | Assign (l, _, _)
