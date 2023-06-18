@@ -1,7 +1,4 @@
 open Base
-open Absint
-open Astprint
-open Util
 
 let () =
   let lexbuf = Lexing.from_channel Stdio.stdin in
@@ -10,7 +7,7 @@ let () =
     let mem = Hashtbl.create (module String) in
     let global = Absint.absint_iter p mem in
     let _ = Util.print_global_mem global in
-    print_prog p 0
+    Astprint.print_prog p 0
   with
   | Lexer.Error msg -> Stdio.printf "%s%!" msg
   | Parser.Error ->

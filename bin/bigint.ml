@@ -1,18 +1,4 @@
-module BigInt : sig
-  type t =
-    | PosInf
-    | NegInf
-    | Int of Z.t
-
-  val ( + ) : t -> t -> t
-  val ( - ) : t -> t -> t
-  val ( == ) : t -> t -> bool
-  val ( < ) : t -> t -> bool
-  val min : t -> t -> t
-  val max : t -> t -> t
-  val to_string : t -> string
-end = struct
-  type t =
+   type t =
     | PosInf
     | NegInf
     | Int of Z.t
@@ -68,4 +54,4 @@ end = struct
     | NegInf, x | x, NegInf -> x
     | Int x, Int y -> Int (Z.max x y)
   ;;
-end
+

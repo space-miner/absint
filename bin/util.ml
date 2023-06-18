@@ -1,30 +1,20 @@
 open Syntax
-open Memory 
 open Base
-open Interval
 
-
-module Util : sig
-  val find_label : cmd -> int
-  val find_next_label : cmd -> int -> int -> int option
-  val find_command : cmd -> int -> cmd option
-  val print_global_mem : (Syntax.label, Memory.t) Base.Hashtbl.t -> unit
-  val get_global_mem : (Syntax.label, Memory.t) Base.Hashtbl.t -> label -> Memory.t
-end = struct
-
-  let get_global_mem global lbl = 
-    match Base.Hashtbl.find global lbl with 
+  let get_global_mem global lbl =
+    match Base.Hashtbl.find global lbl with
     | None -> Base.Hashtbl.create (module String)
     | Some mem -> Base.Hashtbl.copy mem
+  ;;
 
-
-  let print_global_mem global = 
-    Base.Hashtbl.iteri global ~f:(fun ~key:lbl ~data:mem ->
+  let print_global_mem global =
+    Hashtbl.iteri global ~f:(fun ~key:lbl ~data:mem ->
       let _ = Stdio.printf "label%d: \n" lbl in
-      Base.Hashtbl.iteri mem ~f:(fun ~key:var ~data:d ->
+      Hashtbl.iteri mem ~f:(fun ~key:var ~data:d ->
         let _ = Stdio.printf "%s: " var in
         let s = Interval.to_string d in
         Stdio.printf "%s\n" s))
+  ;;
 
   let find_label command =
     match command with
@@ -32,7 +22,7 @@ end = struct
       -> l
   ;;
 
-  (* this should really be called find outside label*)
+  (* this should really be called find "outside" label*)
   let rec find_next_label command label next_label =
     match command with
     | Seq (lbl, cmd1, cmd2) ->
@@ -92,4 +82,4 @@ end = struct
            | None -> None))
     | Assign (lbl, _var, _expr) -> if lbl = label then Some command else None
   ;;
-end
+
