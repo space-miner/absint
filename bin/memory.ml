@@ -1,7 +1,6 @@
 open Base
 open Syntax
 
-
 type t = (var, Interval.t) Hashtbl.t
 
 let is_subset t1 t2 =
@@ -14,8 +13,7 @@ let is_subset t1 t2 =
 ;;
 
 let rec ( == ) t1 t2 = is_subset t1 t2 && is_subset t2 t1
-and 
-( <> ) t1 t2 =  not (t1 == t2)
+and ( <> ) t1 t2 = not (t1 == t2)
 
 let join t1 t2 =
   Hashtbl.fold

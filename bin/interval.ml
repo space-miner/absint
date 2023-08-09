@@ -8,16 +8,14 @@ let not t =
     | Some (NegInf, Int hi) -> Some (Int hi + Int Z.one, PosInf)
     | Some (Int lo, PosInf) -> Some (NegInf, Int lo - Int Z.one)
     | Some (NegInf, PosInf) -> None
-    | _ ->
-      failwith "not valid interval -- i.e intervals of the form [x, -inf] | [inf, x]")
+    | _ -> failwith "not valid interval -- i.e intervals of the form [x, -inf] | [inf, x]")
 ;;
 
 let is_subset t t2 =
   match t, t2 with
   | None, _ -> true
   | _, None -> false
-  | Some (lo1, hi1), Some (lo2, hi2) ->
-    Bigint.(min lo1 lo2 == lo2 && max hi1 hi2 == hi2)
+  | Some (lo1, hi1), Some (lo2, hi2) -> Bigint.(min lo1 lo2 == lo2 && max hi1 hi2 == hi2)
 ;;
 
 let to_string t =
@@ -59,4 +57,3 @@ let binop op t1 t2 =
   | Syntax.Add -> Bigint.( + ) t1 t2
   | Syntax.Sub -> Bigint.( - ) t1 t2
 ;;
-
