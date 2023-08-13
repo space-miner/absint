@@ -1,4 +1,5 @@
-type t = (Bigint.t * Bigint.t) option
+type t =  Bottom 
+        | Interval of (Bigint.t * Bigint.t)
 
 val ( - ) : t -> t -> t
 val ( + ) : t -> t -> t

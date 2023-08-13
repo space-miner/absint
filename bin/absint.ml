@@ -3,7 +3,7 @@ open Syntax
 
   let rec absint_expression expression memory =
     match expression with
-    | Const c -> Some (Bigint.Int c, Bigint.Int c)
+    | Const c -> Interval.Interval (Bigint.Int c, Bigint.Int c)
     | Var x ->
       (match Hashtbl.find memory x with
        | Some x -> x
@@ -32,11 +32,11 @@ open Syntax
        | Less ->
          let modified_right_interval =
            match right_interval with
-           | Some (_, hi) -> Some (hi, Bigint.PosInf)
-           | None -> None
+           | Interval.Interval (_, hi) -> Interval.Interval (hi, Bigint.PosInf)
+           | Interval.Bottom -> Interval.Bottom
          in
          modified_right_interval
-       | Equal -> Some (Bigint.NegInf, Bigint.PosInf))
+       | Equal -> Interval.Interval (Bigint.NegInf, Bigint.PosInf))
     | _ -> failwith "Wrong Cond Form."
   ;;
 
@@ -52,15 +52,15 @@ open Syntax
        | Less ->
          let modified_right_interval =
            match right_interval with
-           | Some (_, hi) ->
-             Interval.( - )
-               (Some (Bigint.NegInf, hi))
-               (Some (Bigint.Int Z.one, Bigint.Int Z.one))
-           | None -> None
+           | Interval.Interval (_, hi) ->
+             (Interval.( - )
+               (Interval.Interval (Bigint.NegInf, hi))
+               (Interval.Interval (Bigint.Int Z.one, Bigint.Int Z.one)))
+           | Interval.Bottom -> Interval.Bottom
          in
          modified_right_interval
        | Equal ->
-         let left_interval = Option.value (Hashtbl.find memory x) ~default:None in
+         let left_interval = Option.value (Hashtbl.find memory x) ~default:Bottom in
          let joined_interval = Interval.join left_interval right_interval in
          joined_interval)
     | _ -> failwith "Wrong Cond Form."
@@ -86,15 +86,15 @@ open Syntax
             "No variable in Condition expression. public static void assume \
              absint_command failure."
       in
-      let var_interval = Option.value (Hashtbl.find curMem var) ~default:None in
+      let var_interval = Option.value (Hashtbl.find curMem var) ~default:Bottom in
       let meet_interval1 = Interval.meet cond_interval var_interval in
       let meet_interval2 = Interval.meet neg_cond_interval var_interval in
       let meets =
         match meet_interval1, meet_interval2 with
-        | None, None -> []
-        | Some m1, None -> [ cmd_label, Some m1 ]
-        | None, Some m2 -> [ nextLabel, Some m2 ]
-        | Some m1, Some m2 -> [ cmd_label, Some m1; nextLabel, Some m2 ]
+        | Bottom, Bottom -> []
+        | Interval.Interval m1, Bottom -> [ cmd_label, Interval.Interval m1 ]
+        | Bottom, Interval.Interval m2 -> [ nextLabel, Interval.Interval m2 ]
+        | Interval.Interval m1, Interval.Interval m2 -> [ cmd_label, Interval.Interval m1; nextLabel, Interval.Interval m2 ]
       in
       List.fold meets ~init:[] ~f:(fun acc (lbl, meet) ->
         let curMemPrime = Hashtbl.copy curMem in
@@ -143,7 +143,7 @@ open Syntax
       else []
     | Assign (lbl, var, exp) ->
       let curMem = Util.get_global_mem glblState lbl in
-      let oldBint = Option.value (Hashtbl.find curMem var) ~default:None in
+      let oldBint = Option.value (Hashtbl.find curMem var) ~default:Bottom in
       let newBint = absint_expression exp curMem in
       let joinBint = Interval.join oldBint newBint in
       let _ = Hashtbl.set curMem ~key:var ~data:joinBint in
