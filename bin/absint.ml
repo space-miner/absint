@@ -27,6 +27,9 @@ open Syntax
     =
     match left_expression with
     | Var _ ->
+      (match right_expression with 
+      | Var _ -> failwith "Wrong Cond Form" 
+      | _ ->
       let right_interval = absint_expression right_expression memory in
       (match compare_operation with
        | Less ->
@@ -36,7 +39,7 @@ open Syntax
            | Interval.Bottom -> Interval.Bottom
          in
          modified_right_interval
-       | Equal -> Interval.Interval (Bigint.NegInf, Bigint.PosInf))
+       | Equal -> Interval.Interval (Bigint.NegInf, Bigint.PosInf)))
     | _ -> failwith "Wrong Cond Form."
   ;;
 
