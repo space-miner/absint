@@ -1,7 +1,7 @@
 %{
   open Syntax;;
   let x = ref 0;;
-  let nextLbl x =
+  let next_label x =
     let res = !x in 
     let _ = x := !x + 1 in
     res
@@ -31,15 +31,15 @@
 %%
 
 prog:
-  | c = cmd EOF                             { Prog (c, nextLbl x) }
+  | c = cmd EOF                             { Prog (c, next_label x) }
 
 cmd:
-  | c1 = cmd SEMICOLON c2 = cmd             { Seq (nextLbl x, c1, c2)}
-  | ASSUME c = cond                         { Assume (nextLbl x, c) }
-  | c1 = cmd CHOICE c2 = cmd                { Choice (nextLbl x, c1, c2) } 
-  | WHILE LPAREN b = cond RPAREN
-    LBRACKET c = cmd RBRACKET               { While (nextLbl x, b, c)}  
-  | v = VAR EQUAL e = expr                     { Assign (nextLbl x, v, e) }
+  | c1 = cmd SEMICOLON c2 = cmd             { Seq (next_label x, c1, c2)}
+  | ASSUME c = cond                         { Assume (next_label x, c) }
+  | c1 = cmd CHOICE c2 = cmd                { Choice (next_label x, c1, c2) }
+  | WHILE LPAREN c = cond RPAREN
+    LBRACKET c1 = cmd RBRACKET               { While (next_label x, c, c1)}
+  | v = VAR EQUAL e = expr                  { Assign (next_label x, v, e) }
 
 cmpop:
   | LESS  {Less}

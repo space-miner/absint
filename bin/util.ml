@@ -1,19 +1,18 @@
 open Syntax
 open Base
 
-let get_global_mem global lbl =
-  match Base.Hashtbl.find global lbl with
+let get_global_mem global label =
+  match Base.Hashtbl.find global label with
   | None -> Base.Hashtbl.create (module String)
-  | Some mem -> Base.Hashtbl.copy mem
+  | Some memory -> Base.Hashtbl.copy memory
 ;;
 
 let print_global_mem global =
-  Hashtbl.iteri global ~f:(fun ~key:lbl ~data:mem ->
-    let _ = Stdio.printf "label%d: \n" lbl in
-    Hashtbl.iteri mem ~f:(fun ~key:var ~data:d ->
-      let _ = Stdio.printf "%s: " var in
-      let s = Interval.to_string d in
-      Stdio.printf "%s\n" s))
+  Hashtbl.iteri global ~f:(fun ~key:label ~data:memory ->
+    let _ = Stdio.printf "label%d: \n" label in
+    Hashtbl.iteri memory ~f:(fun ~key:variable ~data:interval ->
+      let _ = Stdio.printf "%s: " variable in
+      Interval.to_string interval |> Stdio.printf "%s\n"))
 ;;
 
 let find_label command =
@@ -38,6 +37,7 @@ let rec find_next_label command label next_label =
     then Some next_label
     else (
       match find_next_label cmd label lbl with
+      (* find_next_label cmd label lbl seems weird, the lbl part...*)
       | None -> None
       | label_opt -> label_opt)
   | Choice (lbl, cmd1, cmd2) ->

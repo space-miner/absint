@@ -3,6 +3,8 @@ type t =
   | NegInf
   | Int of Z.t
 
+let one = Int Z.one
+
 let ( < ) t t' =
   match t, t' with
   | PosInf, _ | _, NegInf -> false
