@@ -44,11 +44,13 @@ let absint_cond_left left_expression (memory : Memory.t) =
   | _ -> failwith "Left Expression of Cond is not a Variable"
 ;;
 
+(*
 let absint_cond_right right_expression (memory : Memory.t) =
   match right_expression with
   | Var x -> Option.value (Hashtbl.find memory x) ~default:Bottom
   | _ -> failwith "Left Expression of Cond is not a Variable"
 ;;
+*)
 
 let absint_condition_interval
   (Cmp (compare_operation, left_expression, right_expression))
@@ -61,8 +63,7 @@ let absint_condition_interval
     let right = absint_expression right_expression memory in
     (match left, right with
      | Bottom, _ | _, Bottom -> Bottom
-     | _, Interval (right_lo, _) ->
-       Interval (Bigint.NegInf, Bigint.(right_lo - one)))
+     | _, Interval (right_lo, _) -> Interval (Bigint.NegInf, Bigint.(right_lo - one)))
   | Equal ->
     let left = absint_cond_left left_expression memory in
     let right = absint_expression right_expression memory in
@@ -71,6 +72,7 @@ let absint_condition_interval
      | _ -> right)
 ;;
 
+(*
 let absint_condition_bool
   (Cmp (compare_operation, left_expression, right_expression))
   (memory : Memory.t)
@@ -88,9 +90,12 @@ let absint_condition_bool
     let right = absint_expression right_expression memory in
     (match left, right with
      | Bottom, _ | _, Bottom -> false
-     | Interval (left_lo, left_hi), Interval (right_lo, right_hi) -> Bigint.(
-       (right_lo < left_lo || left_lo == right_lo) && (left_hi < right_hi || left_hi == right_hi)))
+     | Interval (left_lo, left_hi), Interval (right_lo, right_hi) ->
+       Bigint.(
+         (right_lo < left_lo || left_lo == right_lo)
+         && (left_hi < right_hi || left_hi == right_hi)))
 ;;
+*)
 
 let rec absint_command current_command global next_label =
   match current_command with

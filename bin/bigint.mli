@@ -3,6 +3,7 @@ type t =
   | NegInf
   | Int of Z.t
 
+val one : t
 val ( + ) : t -> t -> t
 val ( - ) : t -> t -> t
 val ( == ) : t -> t -> bool
