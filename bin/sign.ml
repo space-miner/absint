@@ -50,5 +50,24 @@ let join t1 t2 =
   | NonNegative, NonNegative -> NonNegative
 ;;
 
-let ( - ) t1 t2 = failwith "todo"
-let ( + ) t1 t2 = failwith "todo"
+let ( - ) t1 t2 =
+  match t1,t2 with
+  | Positive, Negative | Positive, NonPositive -> Positive
+  | Negative, Positive | Negative, NonNegative -> Negative
+  | _, Zero -> t1
+  | Zero, Positive -> Negative
+  | Zero, Negative -> Positive
+  | Zero, NonPositive -> NonNegative
+  | Zero, NonNegative -> NonPositive
+  | _ -> Bottom
+
+let ( + ) t1 t2 =
+  | _, Zero -> t1
+  | Zero, _ -> t2
+  | Positive, Positive -> Positive
+  | Negative, Negative -> Negative`
+  | NonPositive, NonPositive -> NonPositive
+  | NonNegative, NonNegative -> NonNegative
+  | Positive, NonNegative | NonNegative, Positive -> Positive
+  | Negative, NonPositive | NonPositive, Negative -> Negative
+  | _ -> Bottom
