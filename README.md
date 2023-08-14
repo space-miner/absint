@@ -41,7 +41,8 @@ label1:
 x: [0, 0]
 
 
-...miscellaneous ast representation with labels for something that is hairier to parse than the hand-typed diagram below
+...miscellaneous ast representation with labels for something that is hairier
+to parse than the hand-typed representation below
 
 -------------------label0
 x = 0;
@@ -59,8 +60,6 @@ while (x < y) {
 
 
 ### todo
-* fix sequences inside while 
-* widening operator
 * refactor to support more abstract domains -- i.e. sign analysis
 * make an interpreter on the concrete semantics
 * fuzzing and diff test?
