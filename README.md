@@ -9,6 +9,55 @@ interval analysis by abstract interpretation on a simple language.
 * nondeterministic choice *Cmd1*[]*Cmd2*
 * sequencing *Cmd1*;*Cmd2*
 
+### example
+a program in this language (test23)
+```
+x = 0;
+y = 100;
+while (x < y) {
+    x = x + 1;
+    y = y - 1
+}
+```
+
+interval analysis on the program above
+```
+label0:                              
+label5: 
+x: [0, 49]
+y: [1, 100]
+label4: 
+x: [0, 50]
+y: [1, 100]
+label6: 
+x: [0, 50]
+y: [0, 100]
+label7: 
+label2: 
+label3: 
+x: [0, 49]
+y: [1, 100]
+label1: 
+x: [0, 0]
+
+
+...miscellaneous ast representation with labels something that looks like this
+
+-------------------label0
+x = 0;
+-------------------label1
+y = 100;
+-------------------label6
+while (x < y) {
+    ---------------label3
+    x = x + 1;
+    ---------------label4
+    y = y - 1
+}
+-------------------label8
+```
+
+
 ### todo
 * fix sequences inside while 
 * widening operator
@@ -16,3 +65,4 @@ interval analysis by abstract interpretation on a simple language.
 * make an interpreter on the concrete semantics
 * fuzzing and diff test?
 * prove soundness using whyml
+
