@@ -34,7 +34,6 @@ let absint_neg_condition_interval
        in
        neg_right_interval
      | Equal -> Bottom)
-    (* Interval (Bigint.NegInf, Bigint.PosInf) ... maybe this should be Bottom instead of Top? *)
   | _ -> failwith "Invalid Cond Form."
 ;;
 
@@ -43,14 +42,6 @@ let absint_cond_left left_expression (memory : Memory.t) =
   | Var x -> Option.value (Hashtbl.find memory x) ~default:Bottom
   | _ -> failwith "Left Expression of Cond is not a Variable"
 ;;
-
-(*
-   let absint_cond_right right_expression (memory : Memory.t) =
-   match right_expression with
-   | Var x -> Option.value (Hashtbl.find memory x) ~default:Bottom
-   | _ -> failwith "Left Expression of Cond is not a Variable"
-   ;;
-*)
 
 let absint_condition_interval
   (Cmp (compare_operation, left_expression, right_expression))
@@ -72,34 +63,9 @@ let absint_condition_interval
      | _ -> right)
 ;;
 
-(*
-   let absint_condition_bool
-   (Cmp (compare_operation, left_expression, right_expression))
-   (memory : Memory.t)
-   : Bool.t
-   =
-   match compare_operation with
-   | Less ->
-   let left = absint_cond_left left_expression memory in
-   let right = absint_expression right_expression memory in
-   (match left, right with
-   | Bottom, _ | _, Bottom -> false
-   | Interval (_, left_hi), Interval (right_lo, _) -> Bigint.(left_hi < right_lo))
-   | Equal ->
-   let left = absint_cond_left left_expression memory in
-   let right = absint_expression right_expression memory in
-   (match left, right with
-   | Bottom, _ | _, Bottom -> false
-   | Interval (left_lo, left_hi), Interval (right_lo, right_hi) ->
-   Bigint.(
-   (right_lo < left_lo || left_lo == right_lo)
-   && (left_hi < right_hi || left_hi == right_hi)))
-   ;;
-*)
 
 let rec absint_command current_command global next_label =
   match current_command with
-  (* propogate memory at lbl to cmd1 *)
   | Seq (lbl, cmd1, cmd2) ->
     let cmd1_label = Util.find_label cmd1 in
     let curr_mem = Util.get_global_mem global lbl in
@@ -107,13 +73,8 @@ let rec absint_command current_command global next_label =
     absint_command cmd1 global (Util.find_label cmd2)
   | While (while_label, cond, cmd) ->
     let curr_mem = Util.get_global_mem global while_label in
-    (* eval while condition *)
-    (* let cond_bool = absint_condition_bool cond curr_mem in *)
-    (* eval the interval inside the while lives in *)
     let cond_interval = absint_condition_interval cond curr_mem in
-    (* get the not of the condition for when we break out of while *)
     let neg_cond_interval = absint_neg_condition_interval cond curr_mem in
-    (* get the label for the while body *)
     let cmd_label = Util.find_label cmd in
     let var =
       match cond with
@@ -124,10 +85,6 @@ let rec absint_command current_command global next_label =
     let meet_interval1 = Interval.meet cond_interval var_interval in
     let meet_interval2 = Interval.meet neg_cond_interval var_interval in
     let meets =
-      (* None, None should never happen right? *)
-      (* Some, None is when we're inside the while loop *)
-      (* None, Some is when we're outside the while loop *)
-      (* Some, Some should never happen, where we're inside the while loop and outside the while loop? *)
       match meet_interval1, meet_interval2 with
       | Bottom, Bottom -> []
       | interval, Bottom -> [ cmd_label, interval ]
@@ -178,9 +135,9 @@ let rec absint_command current_command global next_label =
     else []
   | Assign (lbl, var, exp) ->
     let curr_mem = Util.get_global_mem global lbl in
-    let interval = Option.value (Hashtbl.find curr_mem var) ~default:Bottom in
-    let interval_prime = absint_expression exp curr_mem in
-    let join_interval = Interval.join interval interval_prime in
+    let var_interval = Option.value (Hashtbl.find curr_mem var) ~default:Bottom in
+    let exp_interval = absint_expression exp curr_mem in
+    let join_interval = Interval.join var_interval exp_interval in
     let _ = Hashtbl.set curr_mem ~key:var ~data:join_interval in
     let next_mem = Util.get_global_mem global next_label in
     if Memory.( <> ) curr_mem next_mem
