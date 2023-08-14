@@ -20,7 +20,7 @@ while (x < y) {
 }
 ```
 
-interval analysis on the program above
+interval analysis on the program above (there's extra labels and they're out of order due to walking the ast)
 ```
 label0:                              
 label5: 
@@ -41,7 +41,7 @@ label1:
 x: [0, 0]
 
 
-...miscellaneous ast representation with labels something that looks like this
+...miscellaneous ast representation with labels for something that is hairier to parse than the hand-typed diagram below
 
 -------------------label0
 x = 0;
@@ -49,9 +49,9 @@ x = 0;
 y = 100;
 -------------------label6
 while (x < y) {
-    ---------------label3
+-------------------label3
     x = x + 1;
-    ---------------label4
+-------------------label4
     y = y - 1
 }
 -------------------label8
