@@ -41,21 +41,20 @@ label1:
 x: [0, 0]
 
 
-...miscellaneous ast representation with labels for something that is hairier
-to parse than the hand-typed representation below
+...miscellaneous ast representation with labels for something that is hairier to parse than
+the hand-typed representation below
 
 -------------------label0
 x = 0;
 -------------------label1
 y = 100;
--------------------label6
-while (x < y) {
+while (x < y) { ---label5
 -------------------label3
     x = x + 1;
 -------------------label4
     y = y - 1
 }
--------------------label8
+-------------------label6
 ```
 
 
