@@ -1,24 +1,21 @@
+
 type t = 
      Bottom
   |  Interval of (Bigint.t * Bigint.t) 
 
-
 let not t =
   Bigint.(
     match t with
-    | Bottom -> Interval (NegInf, PosInf)
     | Interval (Int _lo, Int _hi) -> Interval (NegInf, PosInf)
     | Interval (NegInf, Int hi) -> Interval (Int hi + Int Z.one, PosInf)
     | Interval (Int lo, PosInf) -> Interval (NegInf, Int lo - Int Z.one)
-    | Interval (NegInf, PosInf) -> Bottom
-    | _ ->
-      failwith "not valid interval -- i.e intervals of the form [x, -inf] | [inf, x]")
+    | _ -> failwith "not valid interval -- i.e intervals of the form [x, -inf] | [inf, x]")
 ;;
 
-let is_subset t t2 =
-  match t, t2 with
+let is_subset t1 t2 =
+  match t1, t2 with
   | Bottom, _ -> true
-  | _ , Bottom -> false
+  | _, Bottom -> false
   | Interval (lo1, hi1), Interval (lo2, hi2) ->
     Bigint.(min lo1 lo2 == lo2 && max hi1 hi2 == hi2)
 ;;
@@ -62,4 +59,3 @@ let binop op t1 t2 =
   | Syntax.Add -> Bigint.( + ) t1 t2
   | Syntax.Sub -> Bigint.( - ) t1 t2
 ;;
-

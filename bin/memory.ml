@@ -13,8 +13,7 @@ let is_subset t1 t2 =
 ;;
 
 let rec ( == ) t1 t2 = is_subset t1 t2 && is_subset t2 t1
-and 
-( <> ) t1 t2 =  not (t1 == t2)
+and ( <> ) t1 t2 = not (t1 == t2)
 
 let join t1 t2 =
   Hashtbl.fold
@@ -33,6 +32,6 @@ let to_string t =
   String.(
     "Memory {\n"
     ^ Hashtbl.fold t ~init:"" ~f:(fun ~key ~data:value str_acc ->
-        str_acc ^ key ^ ": " ^ Interval.to_string value ^ "\n")
+      str_acc ^ key ^ ": " ^ Interval.to_string value ^ "\n")
     ^ "}")
 ;;

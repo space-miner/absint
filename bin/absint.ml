@@ -1,5 +1,6 @@
 open Base
 open Syntax
+open Interval
 
   let rec absint_expression expression memory =
     match expression with
@@ -153,38 +154,68 @@ open Syntax
       let nextMem = Util.get_global_mem glblState nextLabel in
       if Memory.( <> ) curMem nextMem
       then (
-        let joinMem = Memory.join curMem nextMem in
-        Hashtbl.set glblState ~key:nextLabel ~data:joinMem;
-        [ nextLabel ])
-      else []
-  ;;
+        let join_mem = Memory.join curr_mem next_mem in
+        let _ = Hashtbl.set global ~key:label ~data:join_mem in
+        label :: acc)
+      else if Hashtbl.is_empty curr_mem && Hashtbl.is_empty next_mem
+      then label :: acc
+      else acc)
+  | Assume (lbl, cond) ->
+    let var =
+      match cond with
+      | Cmp (_, Var x, _) -> x
+      | _ -> failwith "No variable in Condition expression."
+    in
+    let curr_mem = Util.get_global_mem global lbl in
+    let cond_interval = absint_condition_interval cond curr_mem in
+    let _ = Hashtbl.set curr_mem ~key:var ~data:cond_interval in
+    let next_mem = Util.get_global_mem global next_label in
+    if Memory.( <> ) curr_mem next_mem
+    then (
+      let join_mem = Memory.join curr_mem next_mem in
+      Hashtbl.set global ~key:next_label ~data:join_mem;
+      [ next_label ])
+    else []
+  | Assign (lbl, var, exp) ->
+    let curr_mem = Util.get_global_mem global lbl in
+    let var_interval = Option.value (Hashtbl.find curr_mem var) ~default:Bottom in
+    let exp_interval = absint_expression exp curr_mem in
+    let join_interval = Interval.join var_interval exp_interval in
+    let _ = Hashtbl.set curr_mem ~key:var ~data:join_interval in
+    let next_mem = Util.get_global_mem global next_label in
+    if Memory.( <> ) curr_mem next_mem
+    then (
+      let join_mem = Memory.join curr_mem next_mem in
+      Hashtbl.set global ~key:next_label ~data:join_mem;
+      [ next_label ])
+    else []
+;;
 
-  let rec absint_iter_loop
-    (stack : label Stack.t)
-    (global : (label, Memory.t) Hashtbl.t)
-    (constProg : cmd)
-    (lExit : label)
-    =
-    if Stack.is_empty stack
-    then global
-    else (
-      let label = Stack.pop_exn stack in
-      match Util.find_command constProg label with
-      | None -> absint_iter_loop stack global constProg lExit
-      | Some command ->
-        (match Util.find_next_label constProg label lExit with
-         | None -> failwith "find_next_label err in absint_iterLoop"
-         | Some nextLabel ->
-           let labels = absint_command command global nextLabel in
-           let _ = List.map labels ~f:(fun x -> Stack.push stack x) in
-           absint_iter_loop stack global constProg lExit))
-  ;;
+let rec absint_iter_loop
+  (stack : label Stack.t)
+  (global : (label, Memory.t) Hashtbl.t)
+  (prog : cmd)
+  (exit_label : label)
+  =
+  if Stack.is_empty stack
+  then global
+  else (
+    let label = Stack.pop_exn stack in
+    match Util.find_command prog label with
+    | None -> absint_iter_loop stack global prog exit_label
+    | Some command ->
+      (match Util.find_next_label prog label exit_label with
+       | None -> failwith "find_next_label err in absint_iter_loop"
+       | Some next_label ->
+         let labels = absint_command command global next_label in
+         let _ = List.map labels ~f:(fun x -> Stack.push stack x) in
+         absint_iter_loop stack global prog exit_label))
+;;
 
-  let absint_iter (Prog (command, label)) initial_memory =
-    let init_label = Util.find_label command in
-    let worklist = Base.Stack.of_list [ init_label ] in
-    let global = Hashtbl.create (module Int) in
-    let _ = Hashtbl.set global ~key:init_label ~data:initial_memory in
-    absint_iter_loop worklist global command label
-  ;;
-
+let absint_iter (Prog (command, exit_label)) initial_memory =
+  let init_label = Util.find_label command in
+  let worklist = Base.Stack.of_list [ init_label ] in
+  let global = Hashtbl.create (module Int) in
+  let _ = Hashtbl.set global ~key:init_label ~data:initial_memory in
+  absint_iter_loop worklist global command exit_label
+;;

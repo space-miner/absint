@@ -1,6 +1,8 @@
 type t =  Bottom 
         | Interval of (Bigint.t * Bigint.t)
 
+
+val one : t
 val ( - ) : t -> t -> t
 val ( + ) : t -> t -> t
 val not : t -> t
