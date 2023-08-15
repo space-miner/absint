@@ -2,157 +2,114 @@ open Base
 open Syntax
 open Interval
 
-  let rec absint_expression expression memory =
-    match expression with
-    | Const c -> Interval.Interval (Bigint.Int c, Bigint.Int c)
-    | Var x ->
-      (match Hashtbl.find memory x with
-       | Some x -> x
-       | None -> failwith "todo, none or [-inf, inf]")
-    | Binop (operation, left_expression, right_expression) ->
-      (match operation with
-       | Add ->
-         Interval.( + )
-           (absint_expression left_expression memory)
-           (absint_expression right_expression memory)
-       | Sub ->
-         Interval.( - )
-           (absint_expression right_expression memory)
-           (absint_expression right_expression memory))
-  ;;
+let rec absint_expression expression memory =
+  match expression with
+  | Const c -> Interval (Bigint.Int c, Bigint.Int c)
+  | Var x ->
+    (match Hashtbl.find memory x with
+     | Some x -> x
+     | None -> failwith "todo, none or [-inf, inf]")
+  | Binop (op, left, right) ->
+    (match op with
+     | Add ->
+       Interval.( + ) (absint_expression left memory) (absint_expression right memory)
+     | Sub ->
+       Interval.( - ) (absint_expression left memory) (absint_expression right memory))
+;;
 
-  let absint_neg_condition
-    (Cmp (compare_operation, left_expression, right_expression))
-    (memory : Memory.t)
-    : Interval.t
-    =
-    match left_expression with
-    | Var _ ->
-      (match right_expression with 
-      | Var _ -> failwith "Wrong Cond Form" 
-      | _ ->
-      let right_interval = absint_expression right_expression memory in
-      (match compare_operation with
-       | Less ->
-         let modified_right_interval =
-           match right_interval with
-           | Interval.Interval (_, hi) -> Interval.Interval (hi, Bigint.PosInf)
-           | Interval.Bottom -> Interval.Bottom
-         in
-         modified_right_interval
-       | Equal -> Interval.Interval (Bigint.NegInf, Bigint.PosInf)))
-    | _ -> failwith "Wrong Cond Form."
-  ;;
+let absint_neg_condition_interval
+  (Cmp (compare_operation, left_expression, right_expression))
+  (memory : Memory.t)
+  : Interval.t
+  =
+  match left_expression with
+  | Var _ ->
+    let right_interval = absint_expression right_expression memory in
+    (match compare_operation with
+     | Less ->
+       let neg_right_interval =
+         match right_interval with
+         | Interval (_, hi) -> Interval (hi, Bigint.PosInf)
+         | Bottom -> Bottom
+       in
+       neg_right_interval
+     | Equal -> Bottom)
+  | _ -> failwith "Invalid Cond Form."
+;;
 
-  let absint_condition
-    (Cmp (compare_operation, left_expression, right_expression))
-    (memory : Memory.t)
-    : Interval.t
-    =
-    match left_expression with
-    | Var x ->
-      let right_interval = absint_expression right_expression memory in
-      (match compare_operation with
-       | Less ->
-         let modified_right_interval =
-           match right_interval with
-           | Interval.Interval (_, hi) ->
-             (Interval.( - )
-               (Interval.Interval (Bigint.NegInf, hi))
-               (Interval.Interval (Bigint.Int Z.one, Bigint.Int Z.one)))
-           | Interval.Bottom -> Interval.Bottom
-         in
-         modified_right_interval
-       | Equal ->
-         let left_interval = Option.value (Hashtbl.find memory x) ~default:Bottom in
-         let joined_interval = Interval.join left_interval right_interval in
-         joined_interval)
-    | _ -> failwith "Wrong Cond Form."
-  ;;
+let absint_cond_left left_expression (memory : Memory.t) =
+  match left_expression with
+  | Var x -> Option.value (Hashtbl.find memory x) ~default:Bottom
+  | _ -> failwith "Left Expression of Cond is not a Variable"
+;;
 
-  let rec absint_command currCmd glblState nextLabel =
-    match currCmd with
-    | Seq (lbl, cmd1, cmd2) ->
-      let first_label = Util.find_label cmd1 in
-      let nextMem = Util.get_global_mem glblState lbl in
-      let _ = Hashtbl.set glblState ~key:first_label ~data:nextMem in
-      absint_command cmd1 glblState (Util.find_label cmd2)
-    | While (while_label, cond, cmd) ->
-      let curMem = Util.get_global_mem glblState while_label in
-      let cond_interval = absint_condition cond curMem in
-      let neg_cond_interval = absint_neg_condition cond curMem in
-      let cmd_label = Util.find_label cmd in
-      let var =
-        match cond with
-        | Cmp (_, Var x, _) -> x
-        | _ ->
-          failwith
-            "No variable in Condition expression. public static void assume \
-             absint_command failure."
-      in
-      let var_interval = Option.value (Hashtbl.find curMem var) ~default:Bottom in
-      let meet_interval1 = Interval.meet cond_interval var_interval in
-      let meet_interval2 = Interval.meet neg_cond_interval var_interval in
-      let meets =
-        match meet_interval1, meet_interval2 with
-        | Bottom, Bottom -> []
-        | Interval.Interval m1, Bottom -> [ cmd_label, Interval.Interval m1 ]
-        | Bottom, Interval.Interval m2 -> [ nextLabel, Interval.Interval m2 ]
-        | Interval.Interval m1, Interval.Interval m2 -> [ cmd_label, Interval.Interval m1; nextLabel, Interval.Interval m2 ]
-      in
-      List.fold meets ~init:[] ~f:(fun acc (lbl, meet) ->
-        let curMemPrime = Hashtbl.copy curMem in
-        let _ = Hashtbl.set curMemPrime ~key:var ~data:meet in
-        let nextMem = Util.get_global_mem glblState lbl in
-        if Memory.( <> ) curMemPrime nextMem
-        then (
-          let joinMem = Memory.join curMemPrime nextMem in
-          let _ = Hashtbl.set glblState ~key:lbl ~data:joinMem in
-          lbl :: acc)
-        else if Hashtbl.is_empty curMemPrime && Hashtbl.is_empty nextMem
-        then lbl :: acc
-        else acc)
-    | Choice (lbl, cmd1, cmd2) ->
-      let curMem = Util.get_global_mem glblState lbl in
-      let label1 = Util.find_label cmd1 in
-      let label2 = Util.find_label cmd2 in
-      List.fold [ label1; label2 ] ~init:[] ~f:(fun acc label ->
-        let nextMem = Util.get_global_mem glblState label in
-        if Memory.( <> ) curMem nextMem
-        then (
-          let joinMem = Memory.join curMem nextMem in
-          let _ = Hashtbl.set glblState ~key:label ~data:joinMem in
-          label :: acc)
-        else if Hashtbl.is_empty curMem && Hashtbl.is_empty nextMem
-        then label :: acc
-        else acc)
-    | Assume (lbl, cond) ->
-      let v =
-        match cond with
-        | Cmp (_, Var x, _) -> x
-        | _ ->
-          failwith
-            "No variable in Condition expression. public static void assume \
-             absint_command failure."
-      in
-      let curMem = Util.get_global_mem glblState lbl in
-      let cond_eval = absint_condition cond curMem in
-      let _ = Hashtbl.set curMem ~key:v ~data:cond_eval in
-      let nextMem = Util.get_global_mem glblState nextLabel in
-      if Memory.( <> ) curMem nextMem
+let absint_condition_interval
+  (Cmp (compare_operation, left_expression, right_expression))
+  (memory : Memory.t)
+  : Interval.t
+  =
+  match compare_operation with
+  | Less ->
+    let left = absint_cond_left left_expression memory in
+    let right = absint_expression right_expression memory in
+    (match left, right with
+     | Bottom, _ | _, Bottom -> Bottom
+     | _, Interval (right_lo, _) -> Interval (Bigint.NegInf, Bigint.(right_lo - one)))
+  | Equal ->
+    let left = absint_cond_left left_expression memory in
+    let right = absint_expression right_expression memory in
+    (match left, right with
+     | Bottom, _ | _, Bottom -> Bottom
+     | _ -> right)
+;;
+
+
+let rec absint_command current_command global next_label =
+  match current_command with
+  | Seq (lbl, cmd1, cmd2) ->
+    let cmd1_label = Util.find_label cmd1 in
+    let curr_mem = Util.get_global_mem global lbl in
+    let _ = Hashtbl.set global ~key:cmd1_label ~data:curr_mem in
+    absint_command cmd1 global (Util.find_label cmd2)
+  | While (while_label, cond, cmd) ->
+    let curr_mem = Util.get_global_mem global while_label in
+    let cond_interval = absint_condition_interval cond curr_mem in
+    let neg_cond_interval = absint_neg_condition_interval cond curr_mem in
+    let cmd_label = Util.find_label cmd in
+    let var =
+      match cond with
+      | Cmp (_, Var x, _) -> x
+      | _ -> failwith "No variable in Condition expression."
+    in
+    let var_interval = Option.value (Hashtbl.find curr_mem var) ~default:Bottom in
+    let meet_interval1 = Interval.meet cond_interval var_interval in
+    let meet_interval2 = Interval.meet neg_cond_interval var_interval in
+    let meets =
+      match meet_interval1, meet_interval2 with
+      | Bottom, Bottom -> []
+      | interval, Bottom -> [ cmd_label, interval ]
+      | Bottom, interval -> [ next_label, interval ]
+      | interval1, interval2 -> [ cmd_label, interval1; next_label, interval2 ]
+    in
+    List.fold meets ~init:[] ~f:(fun acc (lbl, meet) ->
+      let curr_mem_prime = Hashtbl.copy curr_mem in
+      let _ = Hashtbl.set curr_mem_prime ~key:var ~data:meet in
+      let next_mem = Util.get_global_mem global lbl in
+      if Memory.( <> ) curr_mem_prime next_mem
       then (
-        let joinMem = Memory.join curMem nextMem in
-        Hashtbl.set glblState ~key:nextLabel ~data:joinMem;
-        [ nextLabel ])
-      else []
-    | Assign (lbl, var, exp) ->
-      let curMem = Util.get_global_mem glblState lbl in
-      let oldBint = Option.value (Hashtbl.find curMem var) ~default:Bottom in
-      let newBint = absint_expression exp curMem in
-      let joinBint = Interval.join oldBint newBint in
-      let _ = Hashtbl.set curMem ~key:var ~data:joinBint in
-      let nextMem = Util.get_global_mem glblState nextLabel in
-      if Memory.( <> ) curMem nextMem
+        let join_mem = Memory.join curr_mem_prime next_mem in
+        let _ = Hashtbl.set global ~key:lbl ~data:join_mem in
+        lbl :: acc)
+      else if Hashtbl.is_empty curr_mem_prime && Hashtbl.is_empty next_mem
+      then lbl :: acc
+      else acc)
+  | Choice (lbl, cmd1, cmd2) ->
+    let curr_mem = Util.get_global_mem global lbl in
+    let cmd1_label = Util.find_label cmd1 in
+    let cmd2_label = Util.find_label cmd2 in
+    List.fold [ cmd1_label; cmd2_label ] ~init:[] ~f:(fun acc label ->
+      let next_mem = Util.get_global_mem global label in
+      if Memory.( <> ) curr_mem next_mem
       then (
         let join_mem = Memory.join curr_mem next_mem in
         let _ = Hashtbl.set global ~key:label ~data:join_mem in

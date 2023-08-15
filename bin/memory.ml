@@ -7,7 +7,7 @@ let is_subset t1 t2 =
   Hashtbl.fold
     ~init:true
     ~f:(fun ~key:var ~data:interval1 bool_acc ->
-      let interval2 = Option.value (Hashtbl.find t2 var) ~default:Interval.Bottom in
+      let interval2 = Option.value (Hashtbl.find t2 var) ~default:Interval.(Bottom) in
       Interval.is_subset interval1 interval2 && bool_acc)
     t1
 ;;

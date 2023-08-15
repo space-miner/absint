@@ -1,6 +1,6 @@
-type t =  Bottom 
-        | Interval of (Bigint.t * Bigint.t)
-
+type t =
+  | Interval of (Bigint.t * Bigint.t)
+  | Bottom
 
 val one : t
 val ( - ) : t -> t -> t

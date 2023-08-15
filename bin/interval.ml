@@ -1,7 +1,8 @@
+type t =
+  | Interval of (Bigint.t * Bigint.t)
+  | Bottom
 
-type t = 
-     Bottom
-  |  Interval of (Bigint.t * Bigint.t) 
+let one = Interval (Bigint.one, Bigint.one)
 
 let not t =
   Bigint.(
@@ -22,7 +23,7 @@ let is_subset t1 t2 =
 
 let to_string t =
   match t with
-  | Bottom -> "Bot."
+  | Bottom -> "[]"
   | Interval (e1, e2) -> "[" ^ Bigint.to_string e1 ^ ", " ^ Bigint.to_string e2 ^ "]"
 ;;
 
@@ -39,19 +40,22 @@ let join t1 t2 =
   match t1, t2 with
   | Bottom, Bottom -> Bottom
   | Bottom, t | t, Bottom -> t
-  | Interval (lo1, hi1), Interval (lo2, hi2) -> Interval (Bigint.min lo1 lo2, Bigint.max hi1 hi2)
+  | Interval (lo1, hi1), Interval (lo2, hi2) ->
+    Interval (Bigint.min lo1 lo2, Bigint.max hi1 hi2)
 ;;
 
 let ( - ) t1 t2 =
   match t1, t2 with
-  | Bottom, _ | _, Bottom -> failwith "err"
-  | Interval (lo1, hi1), Interval (lo2, hi2) -> Interval (Bigint.( - ) lo1 hi2, Bigint.( - ) hi1 lo2)
+  | Bottom, _ | _, Bottom -> Bottom
+  | Interval (lo1, hi1), Interval (lo2, hi2) ->
+    Interval (Bigint.( - ) lo1 hi2, Bigint.( - ) hi1 lo2)
 ;;
 
 let ( + ) t1 t2 =
   match t1, t2 with
-  | Bottom, _ | _, Bottom -> failwith "err"
-  | Interval (lo1, hi1), Interval (lo2, hi2) -> Interval (Bigint.( + ) lo1 lo2, Bigint.( + ) hi1 hi2)
+  | Bottom, _ | _, Bottom -> Bottom
+  | Interval (lo1, hi1), Interval (lo2, hi2) ->
+    Interval (Bigint.( + ) lo1 lo2, Bigint.( + ) hi1 hi2)
 ;;
 
 let binop op t1 t2 =
