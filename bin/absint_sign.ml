@@ -1,52 +1,53 @@
 open Base
 open Syntax
-open Interval
 
 let rec absint_expression expression memory =
   match expression with
-  | Const c -> Interval.of_const c
+  | Const c -> Sign_domain.of_const c
   | Var x ->
     (match Hashtbl.find memory x with
      | Some x -> x
-     | None -> failwith "todo, none or [-inf, inf]")
+     | None -> failwith "todo, bottom or top")
   | Binop (op, left, right) ->
     (match op with
      | Add ->
-       Interval.( + ) (absint_expression left memory) (absint_expression right memory)
+       Sign_domain.( + ) (absint_expression left memory) (absint_expression right memory)
      | Sub ->
-       Interval.( - ) (absint_expression left memory) (absint_expression right memory))
+       Sign_domain.( - ) (absint_expression left memory) (absint_expression right memory))
 ;;
 
-let absint_neg_condition_interval
+let absint_neg_condition_sign
   (Cmp (compare_operation, left_expression, right_expression))
-  (memory : Memory.t)
-  : Interval.t
+  (memory : Memory_sign.t)
+  : Sign_domain.t
   =
   match left_expression with
   | Var _ ->
-    let right_interval = absint_expression right_expression memory in
+    let right_sign = absint_expression right_expression memory in
     (match compare_operation with
      | Less ->
-       let neg_right_interval =
-         match right_interval with
-         | Interval (_, hi) -> Interval (hi, Bigint.PosInf)
-         | Bottom -> Bottom
+       let neg_right_sign =
+         match right_sign with
+         | Zero -> Sign_domain.Positive
+         | Negative -> Sign_domain.NonNegative
+         | NonPositive -> Sign_domain.Positive
+         | _ -> Sign_domain.Bottom
        in
-       neg_right_interval
+       neg_right_sign
      | Equal -> Bottom)
   | _ -> failwith "Invalid Cond Form."
 ;;
 
-let absint_cond_left left_expression (memory : Memory.t) =
+let absint_cond_left left_expression (memory : Memory_sign.t) =
   match left_expression with
   | Var x -> Option.value (Hashtbl.find memory x) ~default:Bottom
   | _ -> failwith "Left Expression of Cond is not a Variable"
 ;;
 
-let absint_condition_interval
+let absint_condition_sign
   (Cmp (compare_operation, left_expression, right_expression))
-  (memory : Memory.t)
-  : Interval.t
+  (memory : Memory_sign.t)
+  : Sign_domain.t
   =
   match compare_operation with
   | Less ->
@@ -54,7 +55,10 @@ let absint_condition_interval
     let right = absint_expression right_expression memory in
     (match left, right with
      | Bottom, _ | _, Bottom -> Bottom
-     | _, Interval (right_lo, _) -> Interval (Bigint.NegInf, Bigint.(right_lo - one)))
+     | _, Positive -> NonPositive
+     | _, Zero -> Negative
+     | _, NonNegative -> Negative
+     | _, _ -> Bottom)
   | Equal ->
     let left = absint_cond_left left_expression memory in
     let right = absint_expression right_expression memory in
@@ -72,31 +76,31 @@ let rec absint_command current_command global next_label =
     absint_command cmd1 global (Util.find_label cmd2)
   | While (while_label, cond, cmd) ->
     let curr_mem = Util.get_global_mem global while_label in
-    let cond_interval = absint_condition_interval cond curr_mem in
-    let neg_cond_interval = absint_neg_condition_interval cond curr_mem in
+    let cond_sign = absint_condition_sign cond curr_mem in
+    let neg_cond_sign = absint_neg_condition_sign cond curr_mem in
     let cmd_label = Util.find_label cmd in
     let var =
       match cond with
       | Cmp (_, Var x, _) -> x
       | _ -> failwith "No variable in Condition expression."
     in
-    let var_interval = Option.value (Hashtbl.find curr_mem var) ~default:Bottom in
-    let meet_interval1 = Interval.meet cond_interval var_interval in
-    let meet_interval2 = Interval.meet neg_cond_interval var_interval in
+    let var_sign = Option.value (Hashtbl.find curr_mem var) ~default:Bottom in
+    let meet_sign1 = Sign_domain.meet cond_sign var_sign in
+    let meet_sign2 = Sign_domain.meet neg_cond_sign var_sign in
     let meets =
-      match meet_interval1, meet_interval2 with
+      match meet_sign1, meet_sign2 with
       | Bottom, Bottom -> []
-      | interval, Bottom -> [ cmd_label, interval ]
-      | Bottom, interval -> [ next_label, interval ]
-      | interval1, interval2 -> [ cmd_label, interval1; next_label, interval2 ]
+      | sign, Bottom -> [ cmd_label, sign ]
+      | Bottom, sign -> [ next_label, sign ]
+      | sign1, sign2 -> [ cmd_label, sign1; next_label, sign2 ]
     in
     List.fold meets ~init:[] ~f:(fun acc (lbl, meet) ->
       let curr_mem_prime = Hashtbl.copy curr_mem in
       let _ = Hashtbl.set curr_mem_prime ~key:var ~data:meet in
       let next_mem = Util.get_global_mem global lbl in
-      if Memory.( <> ) curr_mem_prime next_mem
+      if Memory_sign.( <> ) curr_mem_prime next_mem
       then (
-        let join_mem = Memory.join curr_mem_prime next_mem in
+        let join_mem = Memory_sign.join curr_mem_prime next_mem in
         let _ = Hashtbl.set global ~key:lbl ~data:join_mem in
         lbl :: acc)
       else if Hashtbl.is_empty curr_mem_prime && Hashtbl.is_empty next_mem
@@ -108,9 +112,9 @@ let rec absint_command current_command global next_label =
     let cmd2_label = Util.find_label cmd2 in
     List.fold [ cmd1_label; cmd2_label ] ~init:[] ~f:(fun acc label ->
       let next_mem = Util.get_global_mem global label in
-      if Memory.( <> ) curr_mem next_mem
+      if Memory_sign.( <> ) curr_mem next_mem
       then (
-        let join_mem = Memory.join curr_mem next_mem in
+        let join_mem = Memory_sign.join curr_mem next_mem in
         let _ = Hashtbl.set global ~key:label ~data:join_mem in
         label :: acc)
       else if Hashtbl.is_empty curr_mem && Hashtbl.is_empty next_mem
@@ -123,25 +127,25 @@ let rec absint_command current_command global next_label =
       | _ -> failwith "No variable in Condition expression."
     in
     let curr_mem = Util.get_global_mem global lbl in
-    let cond_interval = absint_condition_interval cond curr_mem in
-    let _ = Hashtbl.set curr_mem ~key:var ~data:cond_interval in
+    let cond_sign = absint_condition_sign cond curr_mem in
+    let _ = Hashtbl.set curr_mem ~key:var ~data:cond_sign in
     let next_mem = Util.get_global_mem global next_label in
-    if Memory.( <> ) curr_mem next_mem
+    if Memory_sign.( <> ) curr_mem next_mem
     then (
-      let join_mem = Memory.join curr_mem next_mem in
+      let join_mem = Memory_sign.join curr_mem next_mem in
       Hashtbl.set global ~key:next_label ~data:join_mem;
       [ next_label ])
     else []
   | Assign (lbl, var, exp) ->
     let curr_mem = Util.get_global_mem global lbl in
-    let var_interval = Option.value (Hashtbl.find curr_mem var) ~default:Bottom in
-    let exp_interval = absint_expression exp curr_mem in
-    let join_interval = Interval.join var_interval exp_interval in
-    let _ = Hashtbl.set curr_mem ~key:var ~data:join_interval in
+    let var_sign = Option.value (Hashtbl.find curr_mem var) ~default:Bottom in
+    let exp_sign = absint_expression exp curr_mem in
+    let join_sign = Sign_domain.join var_sign exp_sign in
+    let _ = Hashtbl.set curr_mem ~key:var ~data:join_sign in
     let next_mem = Util.get_global_mem global next_label in
-    if Memory.( <> ) curr_mem next_mem
+    if Memory_sign.( <> ) curr_mem next_mem
     then (
-      let join_mem = Memory.join curr_mem next_mem in
+      let join_mem = Memory_sign.join curr_mem next_mem in
       Hashtbl.set global ~key:next_label ~data:join_mem;
       [ next_label ])
     else []
@@ -149,7 +153,7 @@ let rec absint_command current_command global next_label =
 
 let rec absint_iter_loop
   (stack : label Stack.t)
-  (global : (label, Memory.t) Hashtbl.t)
+  (global : (label, Memory_sign.t) Hashtbl.t)
   (prog : cmd)
   (exit_label : label)
   =

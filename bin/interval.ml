@@ -3,6 +3,7 @@ type t =
   | Bottom
 
 let one = Interval (Bigint.one, Bigint.one)
+let of_const c = Interval (Bigint.Int c, Bigint.Int c)
 
 let not t =
   Bigint.(
