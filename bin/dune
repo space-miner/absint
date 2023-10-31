@@ -1,6 +1,8 @@
 (executable
  (public_name absint)
  (name main)
+ (flags
+  (-w -32))
  (modules
   astprint
   absint
@@ -10,6 +12,9 @@
   main
   memory
   parser
+  sign_domain
+  absint_sign
+  memory_sign
   syntax
   util)
  (libraries base stdio stdlib zarith)
