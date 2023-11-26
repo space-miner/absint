@@ -87,10 +87,8 @@ class SignDomain(Expr):
         pass
 
 
-@egraph.class_
-class Memory(Expr):
-    def __init__(self, table: Map[String, SignDomain]) -> None:
-        pass
+TOP = SignDomain(True, True, True)
+BOTTOM = SignDomain(False, False, False)
 
 
 @egraph.register
@@ -103,3 +101,47 @@ def _sign_domain(
     yield rewrite(SignDomain(neg1, zero1, pos1).meet(SignDomain(neg2, zero2, pos2))).to(
         SignDomain(neg1 & neg2, zero1 & zero2, pos1 & pos2)
     )
+
+
+Table = Map[String, SignDomain]
+
+
+@egraph.class_
+class Memory(Expr):
+    def __init__(self, table: Table = Table.empty()) -> None:
+        pass
+
+    def __getitem__(self, key: StringLike) -> SignDomain:
+        """
+        Return the SignDomain for the given variable, if none is found, return TOP.
+        """
+
+
+@egraph.register
+def _memory(t: Table, key: String):
+    yield rewrite(Memory(t)[key]).to(t[key], t, t.contains(key))
+    yield rewrite(Memory(t)[key]).to(TOP, t, t.not_contains(key))
+
+
+with egraph:
+    not_found = Memory()["hi"]
+    found = Memory(Table.empty().insert(String("hi"), BOTTOM))["hi"]
+    egraph.register(not_found, found)
+    egraph.run(1)
+    egraph.check(eq(not_found).to(TOP))
+    egraph.check(eq(found).to(BOTTOM))
+
+
+@egraph.function
+def sign(x: Exp, mem: Memory) -> SignDomain:
+    ...
+
+
+@egraph.function
+def interp(cmd: Cmd, mem: Memory = Memory()) -> Memory:
+    ...
+
+
+# @egraph.register
+# def _interp():
+#     yield
