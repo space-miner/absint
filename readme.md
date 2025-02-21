@@ -1,13 +1,17 @@
 # absint
-interval analysis by abstract interpretation on a simple language.
+an abstract interpreter for a simple flow-chart language. abstract interpreters are tools used in program analysis that uses abstract semantics to analyze and reason about the behaviors of programs. Unlike concrete interpreters, which simulate the exact behavior of a program, abstract interpreters work by over-approximating the error state of a program in the abstract domain (e.g. sign domain) and iteratively refines approximations till fix-point and uses a transfer function to move from the concrete semantics to the abstract and back.
 
 ![](https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Abstract_interpretation_of_integers_by_signs_svg.svg/800px-Abstract_interpretation_of_integers_by_signs_svg.svg.png)
-### language specs
-* assignment
-* arithmetic limited to addition and subtraction
-* assume *Cond* statement, where *Cond* is an equality comparison between variables and variable and constants
-* nondeterministic choice *Cmd1*[]*Cmd2*
-* sequencing *Cmd1*;*Cmd2*
+### specs
+* the language
+  * assignment
+  * arithmetic limited to addition and subtraction
+  * assume *Cond* statement, where *Cond* is an equality comparison between variables and variable and constants
+  * nondeterministic choice *Cmd1*[]*Cmd2*
+  * sequencing *Cmd1*;*Cmd2*
+* the interpreter
+  * supports sign domain
+  * and interval domain
 
 ### example
 a program in this language (test23)
@@ -40,7 +44,6 @@ y: [1, 100]
 label1: 
 x: [0, 0]
 
-
 ...miscellaneous ast representation with labels for something that is hairier to parse than
 the hand-typed representation below
 
@@ -57,10 +60,10 @@ while (x < y) { ---label5
 -------------------label6
 ```
 
-
 ### todo
-* refactor to support more abstract domains -- i.e. sign analysis
+* make memory and interpreter polymorphic over domains
+* add guage domain 
+* move modules to lib
 * make an interpreter on the concrete semantics
 * fuzzing and diff test?
 * prove soundness using whyml
-
